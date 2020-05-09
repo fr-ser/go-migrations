@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"log"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // FileExists returns whether the given file or directory exists
@@ -34,4 +35,11 @@ func GetEnvOrFail(key string) string {
 		log.Fatalf("No environment variable found for: %s", key)
 	}
 	return value
+}
+
+// CheckError checks the error variable and prints a fatal log if it is set
+func CheckError(message string, err error) {
+	if err != nil {
+		log.Fatalf("%s - Err: %v", message, err)
+	}
 }

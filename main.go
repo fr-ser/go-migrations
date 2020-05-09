@@ -1,8 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
+	"path"
+	"runtime"
+
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -23,9 +27,7 @@ func main() {
 	}
 
 	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err)
-	}
+	utils.CheckError("Could not run the CLI command (top level)", err)
 }
 
 func initLogger() {
@@ -34,8 +36,16 @@ func initLogger() {
 	switch logLevel := utils.GetEnvDefault("LOG_LEVEL", "INFO"); logLevel {
 	case "DEBUG":
 		log.SetLevel(log.DebugLevel)
-		log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 		log.SetReportCaller(true)
+		formatter := &log.TextFormatter{
+			FullTimestamp: true,
+			PadLevelText:  true,
+			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+				filename := path.Base(f.File)
+				return "", fmt.Sprintf(" %s:%d", filename, f.Line)
+			},
+		}
+		log.SetFormatter(formatter)
 	case "ERROR":
 		log.SetLevel(log.ErrorLevel)
 	case "WARN":
