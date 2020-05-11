@@ -12,23 +12,28 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func mockCheckError(_ string, _ error) {}
-
 type fakeRunWithSpy struct {
 	Cmds    []*exec.Cmd
 	LastCmd *exec.Cmd
 }
 
+var (
+	successStdout = "stdout_success"
+	successStderr = "stderr_success"
+	failStdout    = "stdout_fail"
+	failStderr    = "stderr_fail"
+)
+
 func (f *fakeRunWithSpy) runWithOutputSuccess(cmd *exec.Cmd) (stdout, stderr string, err error) {
 	f.Cmds = append(f.Cmds, cmd)
 	f.LastCmd = cmd
-	return "stdout", "stderr", nil
+	return successStdout, successStderr, nil
 }
 
 func (f *fakeRunWithSpy) runWithOutputFail(cmd *exec.Cmd) (stdout, stderr string, err error) {
 	f.Cmds = append(f.Cmds, cmd)
 	f.LastCmd = cmd
-	return "stdout", "stderr", errors.New("Sadly it failed")
+	return failStdout, failStderr, errors.New("Sadly it failed")
 }
 
 var app = cli.NewApp()
@@ -72,6 +77,9 @@ func TestStartWithDefaults(t *testing.T) {
 	var fakeRun fakeRunWithSpy
 	runWithOutput = fakeRun.runWithOutputSuccess
 
+	hook := test.NewGlobal()
+	defer hook.Reset()
+
 	if err := app.Run(args); err != nil {
 		t.Errorf("Error running command - %s", err)
 	}
@@ -79,6 +87,11 @@ func TestStartWithDefaults(t *testing.T) {
 	expected := []string{"docker-compose", "up", "--detach", "database"}
 	if !strSliceEqual(fakeRun.LastCmd.Args, expected) {
 		t.Errorf("Expected to run command '%v', but got %s", expected, fakeRun.LastCmd.Args)
+	}
+	for _, element := range hook.AllEntries() {
+		if element.Message == successStderr {
+			t.Error("Expected start to NOT log the stderr of the program for a success case")
+		}
 	}
 }
 
@@ -139,10 +152,6 @@ func TestStartFailure(t *testing.T) {
 	var fakeRun fakeRunWithSpy
 	runWithOutput = fakeRun.runWithOutputFail
 
-	originalCheckError := checkError
-	defer func() { checkError = originalCheckError }()
-	checkError = mockCheckError
-
 	hook := test.NewGlobal()
 	defer hook.Reset()
 
@@ -152,10 +161,14 @@ func TestStartFailure(t *testing.T) {
 		t.Errorf("The command did not return an error")
 	}
 
-	if hook.LastEntry().Message != "stderr" {
-		t.Errorf(
-			"Expected start to log the stderr of the program, but got '%v'",
-			hook.LastEntry().Message,
-		)
+	stdoutPrinted := false
+	for _, element := range hook.AllEntries() {
+		if element.Message == failStderr {
+			stdoutPrinted = true
+			break
+		}
+	}
+	if !stdoutPrinted {
+		t.Error("Expected start to log the stderr of the program for a failure case")
 	}
 }

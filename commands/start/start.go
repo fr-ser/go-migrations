@@ -10,10 +10,9 @@ import (
 	"github.com/fr-ser/go-migrations/utils"
 )
 
-// function variables to allow mocking for tests
+// variables to allow mocking for tests
 var (
 	runWithOutput = utils.RunWithOutput
-	checkError    = utils.CheckError
 )
 
 var flags = []cli.Flag{
@@ -42,11 +41,18 @@ var StartCommand = &cli.Command{
 
 		if c.Bool("restart") {
 			err = stopDb(c.String("dc-file"), c.String("service"))
-			checkError("Could not stop database", err)
+			if err != nil {
+				log.Errorf("Could not stop database - Err: %v", err)
+				return err
+			}
 		}
 
 		err = startDb(c.String("dc-file"), c.String("service"))
-		checkError("Could not start database", err)
+		if err != nil {
+			log.Errorf("Could not start database - Err: %v", err)
+			return err
+		}
+
 		return err
 	},
 }
@@ -61,7 +67,6 @@ func startDb(dcFile, service string) error {
 	_, stderr, err := runWithOutput(exec.Command("docker-compose", args...))
 	if err != nil {
 		log.Error(stderr)
-		checkError("Could not run docker-compose up", err)
 		return err
 	}
 
@@ -80,7 +85,6 @@ func stopDb(dcFile, service string) error {
 	_, stderr, err := runWithOutput(exec.Command("docker-compose", args...))
 	if err != nil {
 		log.Error(stderr)
-		checkError("Could not run docker-compose up", err)
 		return err
 	}
 

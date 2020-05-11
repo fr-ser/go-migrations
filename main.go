@@ -16,18 +16,26 @@ import (
 	"github.com/fr-ser/go-migrations/utils"
 )
 
+func errExitHandler(c *cli.Context, err error) {
+	log.Fatalf("CLI error (top level) - %v", err)
+}
+
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	initLogger()
 
 	app := cli.NewApp()
 	app.EnableBashCompletion = true
+	app.ExitErrHandler = errExitHandler
 	app.Commands = []*cli.Command{
 		start.StartCommand,
 	}
 
 	err := app.Run(os.Args)
-	utils.CheckError("Could not run the CLI command (top level)", err)
+	if err != nil {
+		// this should not be called, as we have an exiting error handler
+		errExitHandler(nil, err)
+	}
 }
 
 func initLogger() {
