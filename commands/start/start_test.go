@@ -2,10 +2,12 @@ package start
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/urfave/cli/v2"
 )
@@ -13,15 +15,18 @@ import (
 func mockCheckError(_ string, _ error) {}
 
 type fakeRunWithSpy struct {
+	Cmds    []*exec.Cmd
 	LastCmd *exec.Cmd
 }
 
 func (f *fakeRunWithSpy) runWithOutputSuccess(cmd *exec.Cmd) (stdout, stderr string, err error) {
+	f.Cmds = append(f.Cmds, cmd)
 	f.LastCmd = cmd
 	return "stdout", "stderr", nil
 }
 
 func (f *fakeRunWithSpy) runWithOutputFail(cmd *exec.Cmd) (stdout, stderr string, err error) {
+	f.Cmds = append(f.Cmds, cmd)
 	f.LastCmd = cmd
 	return "stdout", "stderr", errors.New("Sadly it failed")
 }
@@ -46,17 +51,24 @@ func TestMain(m *testing.M) {
 	app.Commands = []*cli.Command{
 		StartCommand,
 	}
+	log.SetOutput(ioutil.Discard)
 	os.Exit(m.Run())
 }
 
-// TODO: Add functionality to run migrations
+// TODO: Test functionality to run migrations
 
-func TestStartDefaultDockerCompose(t *testing.T) {
-	args := []string{
-		"sth.exe", "start",
-		"--path", "/sth/correct",
-		"--db", "folder_of_sth",
-	}
+// TODO: Test path and db flags
+// &cli.StringFlag{
+// 	Name: "path", Aliases: []string{"p"}, Value: "./migrations",
+// 	Usage: "(relative) path to the folder containing the database migrations",
+// },
+// &cli.StringFlag{
+// 	Name: "db", Value: "zlab",
+// 	Usage: "name of database migration folder",
+// },
+
+func TestStartWithDefaults(t *testing.T) {
+	args := []string{"sth.exe", "start"}
 	var fakeRun fakeRunWithSpy
 	runWithOutput = fakeRun.runWithOutputSuccess
 
@@ -64,19 +76,17 @@ func TestStartDefaultDockerCompose(t *testing.T) {
 		t.Errorf("Error running command - %s", err)
 	}
 
-	expected := []string{"docker-compose", "up"}
+	expected := []string{"docker-compose", "up", "--detach", "database"}
 	if !strSliceEqual(fakeRun.LastCmd.Args, expected) {
-		t.Errorf("Expected to run command '%v', but got %s", expected, fakeRun.LastCmd.Path)
+		t.Errorf("Expected to run command '%v', but got %s", expected, fakeRun.LastCmd.Args)
 	}
-
 }
 
 func TestStartAlternateComposeFile(t *testing.T) {
 	args := []string{
 		"sth.exe", "start",
 		"--dc-file", "./docker-compose/non_standard.yaml",
-		"--path", "/sth/correct",
-		"--db", "folder_of_sth",
+		"--service", "db",
 	}
 	var fakeRun fakeRunWithSpy
 	runWithOutput = fakeRun.runWithOutputSuccess
@@ -86,9 +96,41 @@ func TestStartAlternateComposeFile(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error running command - %s", err)
 	}
-	expected := []string{"docker-compose", "--file", "./docker-compose/non_standard.yaml", "up"}
+
+	// no restart
+	if len(fakeRun.Cmds) != 1 {
+		t.Errorf("Expected 1 commands to run but got %d", len(fakeRun.Cmds))
+	}
+
+	expected := []string{
+		"docker-compose", "--file", "./docker-compose/non_standard.yaml",
+		"up", "--detach", "db",
+	}
 	if !strSliceEqual(fakeRun.LastCmd.Args, expected) {
-		t.Errorf("Expected to run command '%v', but got %s", expected, fakeRun.LastCmd.Path)
+		t.Errorf("Expected to run command '%v', but got %s", expected, fakeRun.LastCmd.Args)
+	}
+}
+
+func TestStartWithRestart(t *testing.T) {
+	args := []string{"sth.exe", "start", "--restart", "-s", "db"}
+	var fakeRun fakeRunWithSpy
+	runWithOutput = fakeRun.runWithOutputSuccess
+
+	if err := app.Run(args); err != nil {
+		t.Errorf("Error running command - %s", err)
+	}
+
+	if len(fakeRun.Cmds) != 2 {
+		t.Errorf("Expected 2 commands to run but got %d", len(fakeRun.Cmds))
+	}
+
+	expectedStop := []string{"docker-compose", "rm", "--force", "--stop", "db"}
+	if !strSliceEqual(fakeRun.Cmds[0].Args, expectedStop) {
+		t.Errorf("Expected to run command '%v', but got %s", expectedStop, fakeRun.Cmds[0].Args)
+	}
+	expectedStart := []string{"docker-compose", "up", "--detach", "db"}
+	if !strSliceEqual(fakeRun.Cmds[1].Args, expectedStart) {
+		t.Errorf("Expected to run command '%v', but got %s", expectedStart, fakeRun.Cmds[1].Args)
 	}
 }
 

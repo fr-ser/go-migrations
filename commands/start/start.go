@@ -22,12 +22,12 @@ var flags = []cli.Flag{
 		Usage: "Path to alternate docker compose file",
 	},
 	&cli.StringFlag{
-		Name: "path", Aliases: []string{"p"}, Value: "./migrations",
-		Usage: "(relative) path to the folder containing the database migrations",
+		Name: "service", Aliases: []string{"s"}, Value: "database",
+		Usage: "service name (in the docker-compose file) of the database",
 	},
-	&cli.StringFlag{
-		Name: "db", Value: "zlab",
-		Usage: "name of database migration folder",
+	&cli.BoolFlag{
+		Name: "restart", Aliases: []string{"r"},
+		Usage: "stop the docker-compose database service before starting",
 	},
 }
 
@@ -38,26 +38,53 @@ var StartCommand = &cli.Command{
 	Flags:  flags,
 	Before: commands.NoArguments,
 	Action: func(c *cli.Context) error {
-		log.Infof("dc-file: %s", c.String("dc-file"))
-		log.Infof("path: %s", c.String("path"))
-		log.Infof("db: %s", c.String("db"))
+		var err error
 
-		var cmd *exec.Cmd
-		if c.String("dc-file") == "" {
-			cmd = exec.Command("docker-compose", "up")
-		} else {
-			cmd = exec.Command("docker-compose", "--file", c.String("dc-file"), "up")
+		if c.Bool("restart") {
+			err = stopDb(c.String("dc-file"), c.String("service"))
+			checkError("Could not stop database", err)
 		}
 
-		_, stderr, err := runWithOutput(cmd)
-		if err != nil {
-			log.Error(stderr)
-			checkError("Could not run docker-compose up", err)
-			return err
-		}
-
-		log.Info("Started docker-compose")
-
-		return nil
+		err = startDb(c.String("dc-file"), c.String("service"))
+		checkError("Could not start database", err)
+		return err
 	},
+}
+
+func startDb(dcFile, service string) error {
+	args := []string{}
+	if dcFile != "" {
+		args = append(args, "--file", dcFile)
+	}
+	args = append(args, "up", "--detach", service)
+
+	_, stderr, err := runWithOutput(exec.Command("docker-compose", args...))
+	if err != nil {
+		log.Error(stderr)
+		checkError("Could not run docker-compose up", err)
+		return err
+	}
+
+	log.Info("Started database")
+
+	return nil
+}
+
+func stopDb(dcFile, service string) error {
+	args := []string{}
+	if dcFile != "" {
+		args = append(args, "--file", dcFile)
+	}
+	args = append(args, "rm", "--force", "--stop", service)
+
+	_, stderr, err := runWithOutput(exec.Command("docker-compose", args...))
+	if err != nil {
+		log.Error(stderr)
+		checkError("Could not run docker-compose up", err)
+		return err
+	}
+
+	log.Debug("Stopped database")
+
+	return nil
 }
