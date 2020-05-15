@@ -1,4 +1,4 @@
-module github.com/fr-ser/go-migrations
+module go-migrations
 
 go 1.14
 

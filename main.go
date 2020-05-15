@@ -12,8 +12,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
-	"github.com/fr-ser/go-migrations/commands/start"
-	"github.com/fr-ser/go-migrations/utils"
+	"go-migrations/commands/start"
+	"go-migrations/utils"
 )
 
 func errExitHandler(c *cli.Context, err error) {

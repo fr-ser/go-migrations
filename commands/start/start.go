@@ -6,8 +6,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
-	"github.com/fr-ser/go-migrations/commands"
-	"github.com/fr-ser/go-migrations/utils"
+	"go-migrations/commands"
+	"go-migrations/utils"
 )
 
 // variables to allow mocking for tests
