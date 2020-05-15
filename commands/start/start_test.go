@@ -84,7 +84,10 @@ func TestStartWithDefaults(t *testing.T) {
 		t.Errorf("Error running command - %s", err)
 	}
 
-	expected := []string{"docker-compose", "up", "--detach", "database"}
+	expected := []string{
+		"docker-compose", "--file", "docker-compose.yaml",
+		"up", "--detach", "database",
+	}
 	if !strSliceEqual(fakeRun.LastCmd.Args, expected) {
 		t.Errorf("Expected to run command '%v', but got %s", expected, fakeRun.LastCmd.Args)
 	}
@@ -137,11 +140,17 @@ func TestStartWithRestart(t *testing.T) {
 		t.Errorf("Expected 2 commands to run but got %d", len(fakeRun.Cmds))
 	}
 
-	expectedStop := []string{"docker-compose", "rm", "--force", "--stop", "db"}
+	expectedStop := []string{
+		"docker-compose", "--file", "docker-compose.yaml",
+		"rm", "--force", "--stop", "db",
+	}
 	if !strSliceEqual(fakeRun.Cmds[0].Args, expectedStop) {
 		t.Errorf("Expected to run command '%v', but got %s", expectedStop, fakeRun.Cmds[0].Args)
 	}
-	expectedStart := []string{"docker-compose", "up", "--detach", "db"}
+	expectedStart := []string{
+		"docker-compose", "--file", "docker-compose.yaml",
+		"up", "--detach", "db",
+	}
 	if !strSliceEqual(fakeRun.Cmds[1].Args, expectedStart) {
 		t.Errorf("Expected to run command '%v', but got %s", expectedStart, fakeRun.Cmds[1].Args)
 	}

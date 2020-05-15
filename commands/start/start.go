@@ -17,8 +17,8 @@ var (
 
 var flags = []cli.Flag{
 	&cli.StringFlag{
-		Name: "dc-file", Aliases: []string{"d"}, Value: "",
-		Usage: "Path to alternate docker compose file",
+		Name: "dc-file", Aliases: []string{"d"}, Value: "docker-compose.yaml",
+		Usage: "Path to docker compose file",
 	},
 	&cli.StringFlag{
 		Name: "service", Aliases: []string{"s"}, Value: "database",
@@ -58,13 +58,9 @@ var StartCommand = &cli.Command{
 }
 
 func startDb(dcFile, service string) error {
-	args := []string{}
-	if dcFile != "" {
-		args = append(args, "--file", dcFile)
-	}
-	args = append(args, "up", "--detach", service)
+	cmd := exec.Command("docker-compose", "--file", dcFile, "up", "--detach", service)
 
-	_, stderr, err := runWithOutput(exec.Command("docker-compose", args...))
+	_, stderr, err := runWithOutput(cmd)
 	if err != nil {
 		log.Error(stderr)
 		return err
@@ -76,13 +72,9 @@ func startDb(dcFile, service string) error {
 }
 
 func stopDb(dcFile, service string) error {
-	args := []string{}
-	if dcFile != "" {
-		args = append(args, "--file", dcFile)
-	}
-	args = append(args, "rm", "--force", "--stop", service)
+	cmd := exec.Command("docker-compose", "--file", dcFile, "rm", "--force", "--stop", service)
 
-	_, stderr, err := runWithOutput(exec.Command("docker-compose", args...))
+	_, stderr, err := runWithOutput(cmd)
 	if err != nil {
 		log.Error(stderr)
 		return err
