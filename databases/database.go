@@ -1,18 +1,43 @@
 package databases
 
+import (
+	"fmt"
+	"go-migrations/databases/config"
+	"go-migrations/databases/postgres"
+)
+
+// variables to allow mocking for tests
+var (
+	loadConfig = config.LoadConfig
+)
+
 // Database is an abstraction over the underlying database and configuration models
 type Database interface {
-	// try to connect to the database within a timeout
+	// WaitForStart tries to connect to the database within a timeout
 	WaitForStart() error
-	// apply bootstrap migration
+	// Bootstrap applies the bootstrap migration
 	Bootstrap() error
-	// apply all up migrations
+	// ApplyUpMigrations applies all up migrations
 	ApplyUpMigrations() error
+
+	// Init initializes the database with the given configuration
+	Init(config.Config) error
 }
 
 // LoadDb loads a configuration and initializes a database on top of it
 func LoadDb(migrationsPath, environment string) (Database, error) {
-	return nil, nil
+	configPath := fmt.Sprintf("%s/_environments/%s.yaml", migrationsPath, environment)
+	config, err := loadConfig(configPath, migrationsPath, environment)
+	if err != nil {
+		return nil, err
+	}
+
+	db := &postgres.Postgres{}
+	if db.Init(config); err != nil {
+		return nil, err
+	}
+
+	return db, err
 }
 
 // Pseudo Code: migrate_up
