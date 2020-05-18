@@ -11,20 +11,6 @@ import (
 
 var app = cli.NewApp()
 
-func strSliceEqual(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	for idx := 0; idx < len(a); idx++ {
-		if a[idx] != b[idx] {
-			return false
-		}
-	}
-
-	return true
-}
-
 func TestMain(m *testing.M) {
 	app.Commands = []*cli.Command{
 		StartCommand,

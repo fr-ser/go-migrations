@@ -25,7 +25,6 @@ type fileConfig struct {
 type Config struct {
 	MigrationsPath      string
 	Environment         string
-	DockerComposeFile   string
 	ApplyPrepareScripts bool
 	ChangelogName       string
 	Db                  struct {
@@ -40,14 +39,13 @@ type Config struct {
 
 // LoadConfig takes a path to a configuration file reads it
 // and performs validity checks
-func LoadConfig(filePath, dockerComposePath, migrationsPath, environment string) (Config, error) {
-	databaseConfig, err := unmarshalConfig(filePath)
+func LoadConfig(configPath, migrationsPath, environment string) (Config, error) {
+	databaseConfig, err := unmarshalConfig(configPath)
 	if err != nil {
 		return databaseConfig, err
 	}
 
 	databaseConfig.ChangelogName = "migrations_changelog"
-	databaseConfig.DockerComposeFile = dockerComposePath
 	databaseConfig.MigrationsPath = migrationsPath
 	databaseConfig.Environment = environment
 

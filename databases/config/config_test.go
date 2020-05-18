@@ -34,7 +34,6 @@ func TestLoadValidConfig(t *testing.T) {
 
 	expectedConfig := Config{}
 	expectedConfig.ChangelogName = "migrations_changelog"
-	expectedConfig.DockerComposeFile = "my-compose.yaml"
 	expectedConfig.MigrationsPath = "./migrations"
 	expectedConfig.Environment = "test_env"
 	expectedConfig.ApplyPrepareScripts = true
@@ -45,7 +44,7 @@ func TestLoadValidConfig(t *testing.T) {
 	expectedConfig.Db.User = "db_admin"
 	expectedConfig.Db.Password = "pass"
 
-	config, err := LoadConfig(f.Name(), "my-compose.yaml", "./migrations", "test_env")
+	config, err := LoadConfig(f.Name(), "./migrations", "test_env")
 	if err != nil {
 		t.Errorf("Returned error: %v", err)
 	}
@@ -68,7 +67,7 @@ func TestInvalidConfigFile(t *testing.T) {
 		f.WriteString(configFile.file)
 
 		t.Run(configFile.name, func(t *testing.T) {
-			_, err := LoadConfig(f.Name(), "", "", "")
+			_, err := LoadConfig(f.Name(), "", "")
 			if err == nil {
 				t.Errorf("Got no error for: %s", configFile.name)
 			}

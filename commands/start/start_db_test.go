@@ -1,9 +1,12 @@
 package start
 
 import (
-	"go-migrations/databases"
 	"os/exec"
 	"testing"
+
+	"go-migrations/databases"
+	"go-migrations/databases/config"
+	"go-migrations/internal"
 )
 
 type fakeDbWithSpy struct {
@@ -25,6 +28,10 @@ func (db *fakeDbWithSpy) Bootstrap() error {
 }
 func (db *fakeDbWithSpy) ApplyUpMigrations() error {
 	db.ApplyUpMigrationsCalled = true
+	return nil
+}
+
+func (db *fakeDbWithSpy) Init(_ config.Config) error {
 	return nil
 }
 
@@ -63,7 +70,7 @@ func TestStartDbDefaults(t *testing.T) {
 	}
 
 	expected := []string{"./migrations/zlab", "development"}
-	if !strSliceEqual(dbLoadArgs, expected) {
+	if !internal.StrSliceEqual(dbLoadArgs, expected) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 
@@ -81,7 +88,7 @@ func TestStartDbWithFlags(t *testing.T) {
 	}
 
 	expected := []string{"/my/path", "my-env"}
-	if !strSliceEqual(dbLoadArgs, expected) {
+	if !internal.StrSliceEqual(dbLoadArgs, expected) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 

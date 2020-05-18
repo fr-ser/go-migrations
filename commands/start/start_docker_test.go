@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/sirupsen/logrus/hooks/test"
+
+	"go-migrations/internal"
 )
 
 var (
@@ -48,7 +50,7 @@ func TestStartWithDefaults(t *testing.T) {
 		"docker-compose", "--file", "docker-compose.yaml",
 		"up", "--detach", "database",
 	}
-	if !strSliceEqual(fakeRun.LastCmd.Args, expected) {
+	if !internal.StrSliceEqual(fakeRun.LastCmd.Args, expected) {
 		t.Errorf("Expected to run command '%v', but got %s", expected, fakeRun.LastCmd.Args)
 	}
 	for _, element := range hook.AllEntries() {
@@ -82,7 +84,7 @@ func TestStartAlternateComposeFile(t *testing.T) {
 		"docker-compose", "--file", "./docker-compose/non_standard.yaml",
 		"up", "--detach", "db",
 	}
-	if !strSliceEqual(fakeRun.LastCmd.Args, expected) {
+	if !internal.StrSliceEqual(fakeRun.LastCmd.Args, expected) {
 		t.Errorf("Expected to run command '%v', but got %s", expected, fakeRun.LastCmd.Args)
 	}
 }
@@ -104,14 +106,14 @@ func TestStartWithRestart(t *testing.T) {
 		"docker-compose", "--file", "docker-compose.yaml",
 		"rm", "--force", "--stop", "db",
 	}
-	if !strSliceEqual(fakeRun.Cmds[0].Args, expectedStop) {
+	if !internal.StrSliceEqual(fakeRun.Cmds[0].Args, expectedStop) {
 		t.Errorf("Expected to run command '%v', but got %s", expectedStop, fakeRun.Cmds[0].Args)
 	}
 	expectedStart := []string{
 		"docker-compose", "--file", "docker-compose.yaml",
 		"up", "--detach", "db",
 	}
-	if !strSliceEqual(fakeRun.Cmds[1].Args, expectedStart) {
+	if !internal.StrSliceEqual(fakeRun.Cmds[1].Args, expectedStart) {
 		t.Errorf("Expected to run command '%v', but got %s", expectedStart, fakeRun.Cmds[1].Args)
 	}
 }
