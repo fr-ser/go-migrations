@@ -1,6 +1,7 @@
 package start
 
 import (
+	"fmt"
 	"os/exec"
 
 	log "github.com/sirupsen/logrus"
@@ -52,35 +53,30 @@ var StartCommand = &cli.Command{
 		if c.Bool("restart") {
 			err = stopDb(c.String("dc-file"), c.String("service"))
 			if err != nil {
-				log.Errorf("Could not stop database - Err: %v", err)
-				return err
+				return fmt.Errorf("Could not stop database - Err: %v", err)
 			}
 		}
 
 		err = startDb(c.String("dc-file"), c.String("service"))
 		if err != nil {
-			log.Errorf("Could not start database - Err: %v", err)
-			return err
+			return fmt.Errorf("Could not start database - Err: %v", err)
 		}
 
 		db, err := dbLoadDb(c.String("migrations-path"), c.String("environment"))
 		if err != nil {
-			log.Error(err)
 			return err
 		}
 
 		if err := db.WaitForStart(); err != nil {
-			log.Error(err)
 			return err
 		}
+		log.Info("Connected to database")
 
 		if err := db.Bootstrap(); err != nil {
-			log.Error(err)
 			return err
 		}
 
 		if err := db.ApplyUpMigrations(); err != nil {
-			log.Error(err)
 			return err
 		}
 

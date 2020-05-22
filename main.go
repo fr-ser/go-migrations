@@ -17,7 +17,7 @@ import (
 )
 
 func errExitHandler(c *cli.Context, err error) {
-	log.Fatalf("CLI error (top level) - %v", err)
+	log.Fatal(err)
 }
 
 func main() {
