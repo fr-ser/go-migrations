@@ -1,0 +1,11 @@
+version: "3.4"
+
+services:
+  database:
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin_pass
+      POSTGRES_DB: my_db
+    ports:
+      - 35432:5432

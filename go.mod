@@ -12,6 +12,7 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kylelemons/godebug v1.1.0
 	github.com/lib/pq v1.2.0 // indirect
+	github.com/lithammer/dedent v1.1.0
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rakyll/gotest v0.0.0-20200206190159-3023d5d6366c

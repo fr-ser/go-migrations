@@ -35,7 +35,13 @@ func (pg *Postgres) WaitForStart() error {
 
 // Bootstrap applies the bootstrap migration
 func (pg *Postgres) Bootstrap() error {
-	return fmt.Errorf("Not implemented")
+	db, err := sql.Open("pgx", pg.connectionURL)
+	if err != nil {
+		return fmt.Errorf("Error opening database: %v", err)
+	}
+	defer db.Close()
+
+	return common.ApplyBootstrapMigration(db, pg.config.MigrationsPath)
 }
 
 // ApplyUpMigrations applies all up migrations

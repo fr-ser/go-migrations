@@ -5,7 +5,9 @@ import os
 
 
 def run_tests():
+    os.system("docker-compose -f docker-compose.test.yaml up --detach")
     os.system("gotest ./...")
+    os.system("docker-compose -f docker-compose.test.yaml down --remove-orphans --timeout 1")
 
 
 def install_go_tools():

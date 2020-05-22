@@ -14,7 +14,7 @@ type fileConfig struct {
 	DbType   string `yaml:"db_type"`
 	Prepare  bool   `yaml:"prepare"`
 	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
+	Port     uint16 `yaml:"port"`
 	DbName   string `yaml:"db_name"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
@@ -30,7 +30,7 @@ type Config struct {
 	Db                  struct {
 		Type     string
 		Host     string
-		Port     int
+		Port     uint16
 		Name     string
 		User     string
 		Password string
