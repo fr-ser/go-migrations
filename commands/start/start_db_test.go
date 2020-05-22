@@ -3,6 +3,7 @@ package start
 import (
 	"os/exec"
 	"testing"
+	"time"
 
 	"go-migrations/databases"
 	"go-migrations/databases/config"
@@ -18,7 +19,7 @@ type fakeDbWithSpy struct {
 	ApplyUpMigrationsCalled bool
 }
 
-func (db *fakeDbWithSpy) WaitForStart() error {
+func (db *fakeDbWithSpy) WaitForStart(pollInterval time.Duration, retryCount int) error {
 	db.WaitForStartCalled = true
 	return nil
 }

@@ -25,11 +25,11 @@ func TestApplyBootstrap(t *testing.T) {
 
 	err = ApplyBootstrapMigration(db, dir)
 	if err != nil {
-		t.Errorf("Received error during bootstrap: %v", err)
+		t.Fatalf("Received error during bootstrap: %v", err)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
+		t.Fatalf("there were unfulfilled expectations: %s", err)
 	}
 }
 
@@ -49,10 +49,10 @@ func TestApplyBootstrapFailure(t *testing.T) {
 
 	err = ApplyBootstrapMigration(db, dir)
 	if err != expectedError {
-		t.Errorf("Received different error during bootstrap: %v", err)
+		t.Fatalf("Received different error during bootstrap: %v", err)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
+		t.Fatalf("there were unfulfilled expectations: %s", err)
 	}
 }

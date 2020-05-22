@@ -2,6 +2,8 @@ package databases
 
 import (
 	"fmt"
+	"time"
+
 	"go-migrations/databases/config"
 	"go-migrations/databases/postgres"
 )
@@ -14,7 +16,7 @@ var (
 // Database is an abstraction over the underlying database and configuration models
 type Database interface {
 	// WaitForStart tries to connect to the database within a timeout
-	WaitForStart() error
+	WaitForStart(pollInterval time.Duration, retryCount int) error
 	// Bootstrap applies the bootstrap migration
 	Bootstrap() error
 	// ApplyUpMigrations applies all up migrations

@@ -8,7 +8,7 @@ import (
 
 // WaitForStart tries to connect to the database
 // parameters are the number of retries and the sleep interval in milliseconds between the retries
-func WaitForStart(db *sql.DB, intervalMs int, retries int) error {
+func WaitForStart(db *sql.DB, pollInterval time.Duration, retries int) error {
 	var err error
 
 	for retry := 0; retry < retries; retry++ {
@@ -16,7 +16,7 @@ func WaitForStart(db *sql.DB, intervalMs int, retries int) error {
 		if err == nil {
 			return nil
 		}
-		time.Sleep(time.Duration(intervalMs) * time.Millisecond)
+		time.Sleep(pollInterval)
 	}
 
 	return fmt.Errorf("Timed out connecting to database: %v", err)

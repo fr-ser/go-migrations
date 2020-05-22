@@ -39,7 +39,10 @@ func main() {
 }
 
 func initLogger() {
-	log.SetFormatter(&log.JSONFormatter{})
+	log.SetFormatter(&log.TextFormatter{
+		DisableTimestamp: true,
+		PadLevelText:     true,
+	})
 
 	switch logLevel := utils.GetEnvDefault("LOG_LEVEL", "INFO"); logLevel {
 	case "DEBUG":

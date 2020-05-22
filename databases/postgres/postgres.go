@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	// import to register driver
 	_ "github.com/jackc/pgx/stdlib"
@@ -23,14 +24,14 @@ type Postgres struct {
 }
 
 // WaitForStart tries to connect to the database within a timeout
-func (pg *Postgres) WaitForStart() error {
+func (pg *Postgres) WaitForStart(pollInterval time.Duration, retryCount int) error {
 	db, err := sql.Open("pgx", pg.connectionURL)
 	if err != nil {
 		return fmt.Errorf("Error opening database: %v", err)
 	}
 	defer db.Close()
 
-	return waitForDb(db, 1000, 10)
+	return waitForDb(db, pollInterval, retryCount)
 }
 
 // Bootstrap applies the bootstrap migration

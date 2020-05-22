@@ -3,6 +3,7 @@ package common
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
@@ -16,7 +17,7 @@ func TestWithRunningDb(t *testing.T) {
 
 	mock.ExpectExec("SELECT 1").WillReturnResult(sqlmock.NewResult(1, 1))
 
-	if err = WaitForStart(db, 1000, 15); err != nil {
+	if err = WaitForStart(db, 1000*time.Millisecond, 15); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
@@ -36,7 +37,7 @@ func TestWithStartingDb(t *testing.T) {
 	mock.ExpectExec("SELECT 1").WillReturnError(errors.New("sth"))
 	mock.ExpectExec("SELECT 1").WillReturnResult(sqlmock.NewResult(1, 1))
 
-	if err = WaitForStart(db, 1, 3); err != nil {
+	if err = WaitForStart(db, 1*time.Millisecond, 3); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
@@ -54,7 +55,7 @@ func TestWithBrokenDb(t *testing.T) {
 
 	mock.ExpectExec("SELECT 1").WillReturnError(errors.New("some error"))
 
-	if err = WaitForStart(db, 1, 3); err == nil {
+	if err = WaitForStart(db, 1*time.Millisecond, 3); err == nil {
 		t.Error("Expected an error since the db is not up")
 	}
 

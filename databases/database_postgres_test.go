@@ -34,12 +34,11 @@ func TestApplyBootstrap(t *testing.T) {
 
 	db, err := LoadDb(migrationPath, "development")
 	if err != nil {
-		t.Errorf("Returned error loading database: %v", err)
+		t.Fatalf("Returned error loading database: %v", err)
 	}
-	db.WaitForStart()
 	err = db.Bootstrap()
 	if err != nil {
-		t.Errorf("Error during bootstrap: %v", err)
+		t.Fatalf("Error during bootstrap: %v", err)
 	}
 
 	_, err = dbConn.Exec("SELECT id, name, applied_at FROM db_main.migrations_changelog")

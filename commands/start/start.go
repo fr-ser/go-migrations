@@ -3,6 +3,7 @@ package start
 import (
 	"fmt"
 	"os/exec"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -67,7 +68,7 @@ var StartCommand = &cli.Command{
 			return err
 		}
 
-		if err := db.WaitForStart(); err != nil {
+		if err := db.WaitForStart(1*time.Second, 10); err != nil {
 			return err
 		}
 		log.Info("Connected to database")
@@ -75,10 +76,12 @@ var StartCommand = &cli.Command{
 		if err := db.Bootstrap(); err != nil {
 			return err
 		}
+		log.Info("Applied bootstrap migration")
 
 		if err := db.ApplyUpMigrations(); err != nil {
 			return err
 		}
+		log.Info("Applied all migrations")
 
 		return err
 	},
