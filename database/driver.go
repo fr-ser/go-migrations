@@ -19,8 +19,8 @@ type Database interface {
 	WaitForStart(pollInterval time.Duration, retryCount int) error
 	// Bootstrap applies the bootstrap migration
 	Bootstrap() error
-	// ApplyUpMigrations applies all up migrations
-	ApplyUpMigrations() error
+	// ApplyAllUpMigrations applies all up migrations
+	ApplyAllUpMigrations() error
 
 	// Init initializes the database with the given configuration
 	Init(config.Config) error

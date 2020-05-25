@@ -45,8 +45,8 @@ func (pg *Postgres) Bootstrap() error {
 	return common.ApplyBootstrapMigration(db, pg.config.MigrationsPath)
 }
 
-// ApplyUpMigrations applies all up migrations
-func (pg *Postgres) ApplyUpMigrations() error {
+// ApplyAllUpMigrations applies all up migrations
+func (pg *Postgres) ApplyAllUpMigrations() error {
 	return fmt.Errorf("Not implemented")
 }
 

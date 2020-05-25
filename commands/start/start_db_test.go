@@ -16,7 +16,7 @@ type fakeDbWithSpy struct {
 	// WaitForStartCalled tracks whether the method was called
 	BootstrapCalled bool
 	// WaitForStartCalled tracks whether the method was called
-	ApplyUpMigrationsCalled bool
+	ApplyAllUpMigrationsCalled bool
 }
 
 func (db *fakeDbWithSpy) WaitForStart(pollInterval time.Duration, retryCount int) error {
@@ -27,8 +27,8 @@ func (db *fakeDbWithSpy) Bootstrap() error {
 	db.BootstrapCalled = true
 	return nil
 }
-func (db *fakeDbWithSpy) ApplyUpMigrations() error {
-	db.ApplyUpMigrationsCalled = true
+func (db *fakeDbWithSpy) ApplyAllUpMigrations() error {
+	db.ApplyAllUpMigrationsCalled = true
 	return nil
 }
 
@@ -56,8 +56,8 @@ func assertDbCalls(t *testing.T, db fakeDbWithSpy) {
 	if !db.BootstrapCalled {
 		t.Error("Bootstrap not called")
 	}
-	if !db.ApplyUpMigrationsCalled {
-		t.Error("ApplyUpMigrations not called")
+	if !db.ApplyAllUpMigrationsCalled {
+		t.Error("ApplyAllUpMigrations not called")
 	}
 }
 

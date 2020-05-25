@@ -78,7 +78,7 @@ var StartCommand = &cli.Command{
 		}
 		log.Info("Applied bootstrap migration")
 
-		if err := db.ApplyUpMigrations(); err != nil {
+		if err := db.ApplyAllUpMigrations(); err != nil {
 			return err
 		}
 		log.Info("Applied all migrations")
