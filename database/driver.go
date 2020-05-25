@@ -1,11 +1,11 @@
-package databases
+package database
 
 import (
 	"fmt"
 	"time"
 
-	"go-migrations/databases/config"
-	"go-migrations/databases/postgres"
+	"go-migrations/database/config"
+	"go-migrations/database/postgres"
 )
 
 // variables to allow mocking for tests

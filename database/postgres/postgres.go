@@ -8,8 +8,8 @@ import (
 	// import to register driver
 	_ "github.com/jackc/pgx/stdlib"
 
-	"go-migrations/databases/common"
-	"go-migrations/databases/config"
+	"go-migrations/database/common"
+	"go-migrations/database/config"
 )
 
 // variables to allow mocking for tests

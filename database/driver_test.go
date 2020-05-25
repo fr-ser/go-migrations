@@ -1,9 +1,9 @@
-package databases
+package database
 
 import (
 	"testing"
 
-	"go-migrations/databases/config"
+	"go-migrations/database/config"
 	"go-migrations/internal"
 )
 

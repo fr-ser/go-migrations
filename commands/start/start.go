@@ -9,14 +9,14 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"go-migrations/commands"
-	"go-migrations/databases"
+	"go-migrations/database"
 	"go-migrations/utils"
 )
 
 // variables to allow mocking for tests
 var (
 	runWithOutput = utils.RunWithOutput
-	dbLoadDb      = databases.LoadDb
+	dbLoadDb      = database.LoadDb
 )
 
 var flags = []cli.Flag{

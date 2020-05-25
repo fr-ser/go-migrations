@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"go-migrations/databases"
-	"go-migrations/databases/config"
+	"go-migrations/database"
+	"go-migrations/database/config"
 	"go-migrations/internal"
 )
 
@@ -39,7 +39,7 @@ func (db *fakeDbWithSpy) Init(_ config.Config) error {
 var dbLoadArgs []string
 var fakeDb fakeDbWithSpy
 
-func fakeLoadWithSpy(migrationsPath, environment string) (databases.Database, error) {
+func fakeLoadWithSpy(migrationsPath, environment string) (database.Database, error) {
 	dbLoadArgs = []string{migrationsPath, environment}
 	fakeDb = fakeDbWithSpy{}
 	return &fakeDb, nil
