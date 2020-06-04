@@ -1,11 +1,11 @@
-package database
+package driver
 
 import (
 	"fmt"
-	"time"
 
+	"go-migrations/database"
 	"go-migrations/database/config"
-	"go-migrations/database/postgres"
+	"go-migrations/database/driver/postgres"
 )
 
 // variables to allow mocking for tests
@@ -13,21 +13,8 @@ var (
 	loadConfig = config.LoadConfig
 )
 
-// Database is an abstraction over the underlying database and configuration models
-type Database interface {
-	// WaitForStart tries to connect to the database within a timeout
-	WaitForStart(pollInterval time.Duration, retryCount int) error
-	// Bootstrap applies the bootstrap migration
-	Bootstrap() error
-	// ApplyAllUpMigrations applies all up migrations
-	ApplyAllUpMigrations() error
-
-	// Init initializes the database with the given configuration
-	Init(config.Config) error
-}
-
 // LoadDb loads a configuration and initializes a database on top of it
-func LoadDb(migrationsPath, environment string) (Database, error) {
+func LoadDb(migrationsPath, environment string) (database.Database, error) {
 	configPath := fmt.Sprintf("%s/_environments/%s.yaml", migrationsPath, environment)
 	config, err := loadConfig(configPath, migrationsPath, environment)
 	if err != nil {

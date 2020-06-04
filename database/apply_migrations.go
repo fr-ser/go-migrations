@@ -1,4 +1,4 @@
-package common
+package database
 
 import (
 	"database/sql"
@@ -39,11 +39,11 @@ func ApplyUpMigration(db *sql.DB, migration FileMigration) error {
 // InsertToChangelog is an internal helper to insert the migration into the changelog
 // The table name is passed to allow specifying database specific paths and schemas
 func InsertToChangelog(db *sql.DB, migration FileMigration, changelogTable string) error {
-	_, err := db.Exec(
-		"INSERT INTO public.migrations_changelog(id, name, applied_at) VALUES (?, ?, now())",
+	_, err := db.Exec(fmt.Sprintf(
+		"INSERT INTO public.migrations_changelog(id, name, applied_at) VALUES ('%s', '%s', now())",
 		migration.ID,
 		migration.Description,
-	)
+	))
 	if err != nil {
 		return fmt.Errorf(
 			"Could not update migration changelog for %s: %v",

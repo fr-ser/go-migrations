@@ -11,7 +11,7 @@ import (
 
 	"github.com/lithammer/dedent"
 
-	"go-migrations/database"
+	"go-migrations/database/driver"
 )
 
 var dbConn, _ = sql.Open("pgx", "postgresql://admin:admin_pass@localhost:35432/my_db")
@@ -36,7 +36,7 @@ func TestApplyBootstrap(t *testing.T) {
 	)
 	ioutil.WriteFile(filepath.Join(migrationPath, "bootstrap.sql"), bootstrapSQL, 0777)
 
-	db, err := database.LoadDb(migrationPath, "development")
+	db, err := driver.LoadDb(migrationPath, "development")
 	if err != nil {
 		t.Fatalf("Returned error loading database: %v", err)
 	}
@@ -105,14 +105,14 @@ func TestApplyAllUpMigrations(t *testing.T) {
 		0777,
 	)
 
-	db, err := database.LoadDb(migrationPath, "development")
+	db, err := driver.LoadDb(migrationPath, "development")
 	if err != nil {
 		t.Fatalf("Returned error loading database: %v", err)
 	}
 
-	// if err := db.Bootstrap(); err != nil {
-	// 	t.Fatalf("Error during bootstrap: %v", err)
-	// }
+	if err := db.Bootstrap(); err != nil {
+		t.Fatalf("Error during bootstrap: %v", err)
+	}
 
 	if err := db.ApplyAllUpMigrations(); err != nil {
 		t.Fatalf("Error during up migration: %v", err)

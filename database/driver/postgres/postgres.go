@@ -8,16 +8,16 @@ import (
 	// import to register driver
 	_ "github.com/jackc/pgx/stdlib"
 
-	"go-migrations/database/common"
+	"go-migrations/database"
 	"go-migrations/database/config"
 )
 
 // variables to allow mocking for tests
 var (
 	sqlOpen             = sql.Open
-	commonWaitForStart  = common.WaitForStart
-	commonBootstrap     = common.ApplyBootstrapMigration
-	commonGetMigrations = common.GetMigrations
+	commonWaitForStart  = database.WaitForStart
+	commonBootstrap     = database.ApplyBootstrapMigration
+	commonGetMigrations = database.GetMigrations
 )
 
 // Postgres is a model to apply migrations against a PostgreSQL database
@@ -52,16 +52,16 @@ func (pg *Postgres) Bootstrap() error {
 // Depending on the config it also first runs the prepare script
 // After the migration a verify script is executed and rolled back in a separate transaction.
 // If the verify script fails the downmigration is executed (also in a transaction)
-func (pg *Postgres) applyUpMigration(db *sql.DB, migration common.FileMigration) error {
-	if err := common.ApplyUpMigration(db, migration); err != nil {
+func (pg *Postgres) applyUpMigration(db *sql.DB, migration database.FileMigration) error {
+	if err := database.ApplyUpMigration(db, migration); err != nil {
 		return err
 	}
 
-	if err := common.InsertToChangelog(db, migration, "public.migrations_changelog"); err != nil {
+	if err := database.InsertToChangelog(db, migration, "public.migrations_changelog"); err != nil {
 		return err
 	}
 
-	if err := common.ApplyVerify(db, migration); err != nil {
+	if err := database.ApplyVerify(db, migration); err != nil {
 		return err
 	}
 
