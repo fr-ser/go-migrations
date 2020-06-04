@@ -77,9 +77,18 @@ func (pg *Postgres) applyUpMigration(db *sql.DB, migration common.FileMigration)
 		return fmt.Errorf("Error during commit %s", err)
 	}
 
+	_, err = db.Exec(
+		"INSERT INTO public.migrations_changelog(id, name, applied_at) VALUES (?, ?, now())",
+		migration.ID,
+		migration.Description,
+	)
+	if err != nil {
+		return fmt.Errorf("Could not update migration changelog: %v", err)
+	}
+
 	verifyTx, err := db.Begin()
 	if err != nil {
-		return fmt.Errorf("Error opening transaction: %v", err)
+		return fmt.Errorf("Error opening transaction for verify: %v", err)
 	}
 
 	_, verifyErr := verifyTx.Exec(migration.VerifySQL)

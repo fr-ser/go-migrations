@@ -58,13 +58,13 @@ func TestBootstrap(t *testing.T) {
 
 func TestApplyAllUpMigrations(t *testing.T) {
 	defer resetMockVariables()
-	db, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	sqlOpen = func(a, b string) (*sql.DB, error) { return db, err }
 
 	commonGetMigrations = func(a string, b []string) (migrations []common.FileMigration, err error) {
 		migrations = []common.FileMigration{
-			{UpSQL: "SELECT 1", VerifySQL: "SELECT 12"},
-			{UpSQL: "SELECT 2", VerifySQL: "SELECT 22"},
+			{UpSQL: "SELECT 1", VerifySQL: "SELECT 12", ID: "1", Description: "a"},
+			{UpSQL: "SELECT 2", VerifySQL: "SELECT 22", ID: "2", Description: "b"},
 		}
 		return migrations, err
 	}
@@ -72,6 +72,9 @@ func TestApplyAllUpMigrations(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectExec("SELECT 1").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+	mock.ExpectExec(
+		"INSERT INTO public.migrations_changelog(id, name, applied_at) VALUES (?, ?, now())",
+	).WithArgs("1", "a").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectBegin()
 	mock.ExpectExec("SELECT 12").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectRollback()
@@ -79,6 +82,9 @@ func TestApplyAllUpMigrations(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectExec("SELECT 2").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+	mock.ExpectExec(
+		"INSERT INTO public.migrations_changelog(id, name, applied_at) VALUES (?, ?, now())",
+	).WithArgs("2", "b").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectBegin()
 	mock.ExpectExec("SELECT 22").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectRollback()
@@ -125,20 +131,53 @@ func TestApplyAllUpMigrationsUpMigrationError(t *testing.T) {
 
 func TestApplyAllUpMigrationsVerifyError(t *testing.T) {
 	defer resetMockVariables()
-	db, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	sqlOpen = func(a, b string) (*sql.DB, error) { return db, err }
 
 	commonGetMigrations = func(a string, b []string) (migrations []common.FileMigration, err error) {
-		migrations = []common.FileMigration{{UpSQL: "SELECT 1", VerifySQL: "SELECT 12"}}
+		migrations = []common.FileMigration{{UpSQL: "SELECT 1", VerifySQL: "SELECT 12", ID: "1", Description: "a"}}
 		return migrations, err
 	}
 
 	mock.ExpectBegin()
 	mock.ExpectExec("SELECT 1").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+	mock.ExpectExec(
+		"INSERT INTO public.migrations_changelog(id, name, applied_at) VALUES (?, ?, now())",
+	).WithArgs("1", "a").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectBegin()
 	mock.ExpectExec("SELECT 12").WillReturnError(fmt.Errorf("Verify error"))
 	mock.ExpectRollback()
+
+	mock.ExpectClose()
+
+	pg := Postgres{}
+	err = pg.ApplyAllUpMigrations()
+	if err == nil {
+		t.Errorf("Expected error for applying all up migrations, but got nothing")
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestApplyAllUpMigrationsChangelogError(t *testing.T) {
+	defer resetMockVariables()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	sqlOpen = func(a, b string) (*sql.DB, error) { return db, err }
+
+	commonGetMigrations = func(a string, b []string) (migrations []common.FileMigration, err error) {
+		migrations = []common.FileMigration{{UpSQL: "SELECT 1", VerifySQL: "SELECT 12", ID: "1", Description: "a"}}
+		return migrations, err
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectExec("SELECT 1").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	mock.ExpectExec(
+		"INSERT INTO public.migrations_changelog(id, name, applied_at) VALUES (?, ?, now())",
+	).WithArgs("1", "a").WillReturnError(fmt.Errorf("changelog error"))
 
 	mock.ExpectClose()
 
