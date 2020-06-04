@@ -7,7 +7,6 @@ import (
 
 	// import to register driver
 	_ "github.com/jackc/pgx/stdlib"
-	"github.com/lithammer/dedent"
 
 	"go-migrations/database/common"
 	"go-migrations/database/config"
@@ -54,59 +53,16 @@ func (pg *Postgres) Bootstrap() error {
 // After the migration a verify script is executed and rolled back in a separate transaction.
 // If the verify script fails the downmigration is executed (also in a transaction)
 func (pg *Postgres) applyUpMigration(db *sql.DB, migration common.FileMigration) error {
-	upTx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("Error opening transaction: %v", err)
+	if err := common.ApplyUpMigration(db, migration); err != nil {
+		return err
 	}
 
-	_, err = upTx.Exec(migration.UpSQL)
-	if err != nil {
-		rollbackError := upTx.Rollback()
-		if rollbackError != nil {
-			return fmt.Errorf(
-				"Error during up migration: %s \n and rollback error: %s",
-				err,
-				rollbackError,
-			)
-		}
-		return fmt.Errorf("Error during up migration: %s", err)
+	if err := common.InsertToChangelog(db, migration, "public.migrations_changelog"); err != nil {
+		return err
 	}
 
-	err = upTx.Commit()
-	if err != nil {
-		return fmt.Errorf("Error during commit %s", err)
-	}
-
-	_, err = db.Exec(
-		"INSERT INTO public.migrations_changelog(id, name, applied_at) VALUES (?, ?, now())",
-		migration.ID,
-		migration.Description,
-	)
-	if err != nil {
-		return fmt.Errorf("Could not update migration changelog: %v", err)
-	}
-
-	verifyTx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("Error opening transaction for verify: %v", err)
-	}
-
-	_, verifyErr := verifyTx.Exec(migration.VerifySQL)
-	rollbackError := verifyTx.Rollback()
-	if verifyErr != nil && rollbackError != nil {
-		return fmt.Errorf(
-			dedent.Dedent(`
-				Got an error for verify. Please asses the necessity of a down migration.
-				Verify Error: %s
-				Rollback error: %s
-			`),
-			verifyErr,
-			rollbackError,
-		)
-	} else if verifyErr != nil {
-		return fmt.Errorf("Error during verify: %s", verifyErr)
-	} else if rollbackError != nil {
-		return fmt.Errorf("Error during rollback of verify: %s", rollbackError)
+	if err := common.ApplyVerify(db, migration); err != nil {
+		return err
 	}
 
 	return nil
