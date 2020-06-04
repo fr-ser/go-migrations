@@ -17,6 +17,7 @@ type FileMigration struct {
 	VerifySQL   string
 	PrepareSQL  string
 	ID          string
+	Description string
 	Filename    string
 	Application string
 }
@@ -37,6 +38,9 @@ func (mig *FileMigration) LoadFromFile(migrationPath string) error {
 		return fmt.Errorf("Could not find id in filename '%s'", mig.Filename)
 	}
 	mig.ID = idMatch[1]
+
+	runes := []rune(mig.Filename)
+	mig.Description = string(runes[15 : len(runes)-4])
 
 	if err := mig.loadMigration(migrationPath); err != nil {
 		return err

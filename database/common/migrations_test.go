@@ -14,7 +14,7 @@ func TestLoadMigration(t *testing.T) {
 	cleanup, migrationPath := setupFolder(t)
 	defer cleanup()
 
-	filename := "20171101000001_foo.sql"
+	filename := "20171101000001_foo_bar_baz.sql"
 
 	migrationSQL := []byte(dedent.Dedent(`
 		CREATE SCHEMA foo;
@@ -50,6 +50,7 @@ func TestLoadMigration(t *testing.T) {
 		VerifySQL:   "SELECT 1",
 		PrepareSQL:  "SELECT 2",
 		ID:          "20171101000001",
+		Description: "foo_bar_baz",
 		Filename:    filename,
 		Application: "_common",
 	}

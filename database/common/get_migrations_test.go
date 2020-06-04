@@ -153,6 +153,7 @@ func getMigrationFor(basePath, application, migrationName string) FileMigration 
 	return FileMigration{
 		Filename:    migrationName,
 		ID:          migrationName[0:14],
+		Description: migrationName[15 : len(migrationName)-4],
 		Application: application,
 		UpSQL:       "CREATE SCHEMA template;",
 		DownSQL:     "DROP SCHEMA template;",
