@@ -3,48 +3,17 @@ package start
 import (
 	"os/exec"
 	"testing"
-	"time"
 
 	"go-migrations/database"
-	"go-migrations/database/config"
 	"go-migrations/internal"
 )
 
-type fakeDbWithSpy struct {
-	WaitForStartCalled              bool
-	BootstrapCalled                 bool
-	ApplyAllUpMigrationsCalled      bool
-	EnsureMigrationsChangelogCalled bool
-}
-
-func (db *fakeDbWithSpy) WaitForStart(pollInterval time.Duration, retryCount int) error {
-	db.WaitForStartCalled = true
-	return nil
-}
-func (db *fakeDbWithSpy) Bootstrap() error {
-	db.BootstrapCalled = true
-	return nil
-}
-func (db *fakeDbWithSpy) ApplyAllUpMigrations() error {
-	db.ApplyAllUpMigrationsCalled = true
-	return nil
-}
-
-func (db *fakeDbWithSpy) EnsureMigrationsChangelog() (bool, error) {
-	db.EnsureMigrationsChangelogCalled = true
-	return false, nil
-}
-
-func (db *fakeDbWithSpy) Init(_ config.Config) error {
-	return nil
-}
-
 var dbLoadArgs []string
-var fakeDb fakeDbWithSpy
+var fakeDb internal.FakeDbWithSpy
 
 func fakeLoadWithSpy(migrationsPath, environment string) (database.Database, error) {
 	dbLoadArgs = []string{migrationsPath, environment}
-	fakeDb = fakeDbWithSpy{}
+	fakeDb = internal.FakeDbWithSpy{}
 	return &fakeDb, nil
 }
 
@@ -52,7 +21,7 @@ func fakeRunWithOutput(cmd *exec.Cmd) (stdout, stderr string, err error) {
 	return "", "", nil
 }
 
-func assertDbCalls(t *testing.T, db fakeDbWithSpy) {
+func assertDbCalls(t *testing.T, db internal.FakeDbWithSpy) {
 	if !db.WaitForStartCalled {
 		t.Error("WaitForStart not called")
 	}
