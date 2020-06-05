@@ -22,7 +22,7 @@ func TestGetMigrations(t *testing.T) {
 		getMigrationFor(basePath, "a_other_app", "20171101000002_bar.sql"),
 	}
 
-	gotMigrations, err := GetMigrations(basePath, []string{})
+	gotMigrations, err := GetMigrations(basePath)
 	if err != nil {
 		t.Fatalf("Got an error loading migrations: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestIgnoreFilesForApps(t *testing.T) {
 
 	ioutil.WriteFile(filepath.Join(basePath, "foo.sql"), []byte("foo"), 0777)
 
-	gotMigrations, err := GetMigrations(basePath, []string{})
+	gotMigrations, err := GetMigrations(basePath)
 	if err != nil {
 		t.Fatalf("Got an error loading migrations: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestIgnoreFoldersInApps(t *testing.T) {
 		filepath.Join(basePath, "some_app", "some_folder", "bar.sql"), []byte("bar"), 0777,
 	)
 
-	gotMigrations, err := GetMigrations(basePath, []string{})
+	gotMigrations, err := GetMigrations(basePath)
 	if err != nil {
 		t.Fatalf("Got an error loading migrations: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestIgnoreEnvironments(t *testing.T) {
 	os.Mkdir(filepath.Join(basePath, "_environments"), 0777)
 	ioutil.WriteFile(filepath.Join(basePath, "_environments", "some_env.yaml"), []byte("1"), 0777)
 
-	gotMigrations, err := GetMigrations(basePath, []string{})
+	gotMigrations, err := GetMigrations(basePath)
 	if err != nil {
 		t.Fatalf("Got an error loading migrations: %v", err)
 	}
@@ -104,33 +104,9 @@ func TestNoDuplicateIDs(t *testing.T) {
 	getMigrationFor(basePath, "my_app", "20171101000001_foo.sql")
 	getMigrationFor(basePath, "other_app", "20171101000001_bar.sql")
 
-	_, err = GetMigrations(basePath, []string{})
+	_, err = GetMigrations(basePath)
 	if err == nil {
 		t.Fatal("Got no error with duplicate IDs")
-	}
-}
-
-func TestFilterApplications(t *testing.T) {
-	basePath, err := ioutil.TempDir("", "go_mig")
-	if err != nil {
-		t.Fatalf("Returned error setting up the tmp directory: %v", err)
-	}
-	defer os.RemoveAll(basePath)
-
-	expectedMigrations := []FileMigration{
-		getMigrationFor(basePath, "_common", "20171101000001_foo.sql"),
-		getMigrationFor(basePath, "my_app", "20171101000002_foo.sql"),
-	}
-	getMigrationFor(basePath, "other_app", "20171101000003_bar.sql")
-
-	gotMigrations, err := GetMigrations(basePath, []string{"my_app"})
-	if err != nil {
-		t.Fatalf("Got an error loading migrations: %v", err)
-	}
-
-	diff := migrationsListEqual(expectedMigrations, gotMigrations)
-	if diff != "" {
-		t.Error(diff)
 	}
 }
 

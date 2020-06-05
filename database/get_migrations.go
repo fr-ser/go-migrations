@@ -9,20 +9,9 @@ import (
 
 // GetMigrations gets all migration files within the database/migration folder's subfolders
 // it returns a list of FileMigrations sorted (ascending) by the ID.
-// The migrations are filtered by application if the passed list is not empty
-func GetMigrations(migrationFolder string, applicationFilter []string) (
-	migrations []FileMigration, err error,
-) {
+func GetMigrations(migrationFolder string) (migrations []FileMigration, err error) {
 	skippedFolders := map[string]bool{"_environments": true}
 	fileMigrations := map[string]FileMigration{}
-	shouldFilter := applicationFilter != nil && len(applicationFilter) > 0
-	appsToInclude := map[string]bool{"_common": true}
-
-	if shouldFilter {
-		for _, app := range applicationFilter {
-			appsToInclude[app] = true
-		}
-	}
 
 	apps, err := ioutil.ReadDir(migrationFolder)
 	if err != nil {
@@ -32,8 +21,6 @@ func GetMigrations(migrationFolder string, applicationFilter []string) (
 	}
 	for _, app := range apps {
 		if skippedFolders[app.Name()] || !app.IsDir() {
-			continue
-		} else if shouldFilter && !appsToInclude[app.Name()] {
 			continue
 		}
 

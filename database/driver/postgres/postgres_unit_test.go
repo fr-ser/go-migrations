@@ -62,7 +62,7 @@ func TestApplyAllUpMigrations(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	sqlOpen = func(a, b string) (*sql.DB, error) { return db, err }
 
-	commonGetMigrations = func(a string, b []string) (migrations []database.FileMigration, err error) {
+	commonGetMigrations = func(a string) (migrations []database.FileMigration, err error) {
 		migrations = []database.FileMigration{
 			{UpSQL: "SELECT 1", VerifySQL: "SELECT 12", ID: "1", Description: "a"},
 			{UpSQL: "SELECT 2", VerifySQL: "SELECT 22", ID: "2", Description: "b"},
@@ -108,7 +108,7 @@ func TestApplyAllUpMigrationsUpMigrationError(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	sqlOpen = func(a, b string) (*sql.DB, error) { return db, err }
 
-	commonGetMigrations = func(a string, b []string) (migrations []database.FileMigration, err error) {
+	commonGetMigrations = func(a string) (migrations []database.FileMigration, err error) {
 		migrations = []database.FileMigration{{UpSQL: "SELECT 1"}}
 		return migrations, err
 	}
@@ -135,7 +135,7 @@ func TestApplyAllUpMigrationsVerifyError(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	sqlOpen = func(a, b string) (*sql.DB, error) { return db, err }
 
-	commonGetMigrations = func(a string, b []string) (migrations []database.FileMigration, err error) {
+	commonGetMigrations = func(a string) (migrations []database.FileMigration, err error) {
 		migrations = []database.FileMigration{{UpSQL: "SELECT 1", VerifySQL: "SELECT 12", ID: "1", Description: "a"}}
 		return migrations, err
 	}
@@ -168,7 +168,7 @@ func TestApplyAllUpMigrationsChangelogError(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	sqlOpen = func(a, b string) (*sql.DB, error) { return db, err }
 
-	commonGetMigrations = func(a string, b []string) (migrations []database.FileMigration, err error) {
+	commonGetMigrations = func(a string) (migrations []database.FileMigration, err error) {
 		migrations = []database.FileMigration{{UpSQL: "SELECT 1", VerifySQL: "SELECT 12", ID: "1", Description: "a"}}
 		return migrations, err
 	}
