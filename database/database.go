@@ -14,6 +14,9 @@ type Database interface {
 	// ApplyAllUpMigrations applies all up migrations
 	ApplyAllUpMigrations() error
 
+	// EnsureMigrationsChangelog checks if a changelog table already exists and creates it if
+	// necessary
+	EnsureMigrationsChangelog() (created bool, err error)
 	// Init initializes the database with the given configuration
 	Init(config.Config) error
 }

@@ -73,6 +73,10 @@ var StartCommand = &cli.Command{
 		}
 		log.Info("Connected to database")
 
+		if _, err := db.EnsureMigrationsChangelog(); err != nil {
+			return err
+		}
+
 		if err := db.Bootstrap(); err != nil {
 			return err
 		}

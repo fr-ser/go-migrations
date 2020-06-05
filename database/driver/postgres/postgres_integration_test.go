@@ -59,18 +59,6 @@ func TestApplyAllUpMigrations(t *testing.T) {
 	cleanup, migrationPath := setupFolder(t)
 	defer cleanup()
 
-	bootstrapSQL := []byte(
-		dedent.Dedent(`
-			CREATE TABLE public.migrations_changelog (
-				id VARCHAR(14) NOT NULL PRIMARY KEY
-				, name TEXT NOT NULL
-				, applied_at timestamptz NOT NULL
-			);
-		`),
-	)
-
-	ioutil.WriteFile(filepath.Join(migrationPath, "bootstrap.sql"), bootstrapSQL, 0777)
-
 	firstMigration := []byte(dedent.Dedent(`
 		CREATE TABLE public.fiz (fuz TEXT PRIMARY KEY)
 		-- //@UNDO
@@ -110,8 +98,8 @@ func TestApplyAllUpMigrations(t *testing.T) {
 		t.Fatalf("Returned error loading database: %v", err)
 	}
 
-	if err := db.Bootstrap(); err != nil {
-		t.Fatalf("Error during bootstrap: %v", err)
+	if _, err := db.EnsureMigrationsChangelog(); err != nil {
+		t.Fatalf("Error during changelog creation: %v", err)
 	}
 
 	if err := db.ApplyAllUpMigrations(); err != nil {

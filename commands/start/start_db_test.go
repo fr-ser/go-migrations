@@ -11,12 +11,10 @@ import (
 )
 
 type fakeDbWithSpy struct {
-	// WaitForStartCalled tracks whether the method was called
-	WaitForStartCalled bool
-	// WaitForStartCalled tracks whether the method was called
-	BootstrapCalled bool
-	// WaitForStartCalled tracks whether the method was called
-	ApplyAllUpMigrationsCalled bool
+	WaitForStartCalled              bool
+	BootstrapCalled                 bool
+	ApplyAllUpMigrationsCalled      bool
+	EnsureMigrationsChangelogCalled bool
 }
 
 func (db *fakeDbWithSpy) WaitForStart(pollInterval time.Duration, retryCount int) error {
@@ -30,6 +28,11 @@ func (db *fakeDbWithSpy) Bootstrap() error {
 func (db *fakeDbWithSpy) ApplyAllUpMigrations() error {
 	db.ApplyAllUpMigrationsCalled = true
 	return nil
+}
+
+func (db *fakeDbWithSpy) EnsureMigrationsChangelog() (bool, error) {
+	db.EnsureMigrationsChangelogCalled = true
+	return false, nil
 }
 
 func (db *fakeDbWithSpy) Init(_ config.Config) error {
@@ -58,6 +61,9 @@ func assertDbCalls(t *testing.T, db fakeDbWithSpy) {
 	}
 	if !db.ApplyAllUpMigrationsCalled {
 		t.Error("ApplyAllUpMigrations not called")
+	}
+	if !db.EnsureMigrationsChangelogCalled {
+		t.Error("EnsureMigrationsChangelog not called")
 	}
 }
 

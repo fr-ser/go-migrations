@@ -7,6 +7,7 @@ import (
 
 	// import to register driver
 	_ "github.com/jackc/pgx/stdlib"
+	"github.com/lithammer/dedent"
 
 	"go-migrations/database"
 	"go-migrations/database/config"
@@ -19,6 +20,8 @@ var (
 	commonBootstrap     = database.ApplyBootstrapMigration
 	commonGetMigrations = database.GetMigrations
 )
+
+var changelogTable = "public.migrations_changelog"
 
 // Postgres is a model to apply migrations against a PostgreSQL database
 type Postgres struct {
@@ -57,7 +60,7 @@ func (pg *Postgres) applyUpMigration(db *sql.DB, migration database.FileMigratio
 		return err
 	}
 
-	if err := database.InsertToChangelog(db, migration, "public.migrations_changelog"); err != nil {
+	if err := database.InsertToChangelog(db, migration, changelogTable); err != nil {
 		return err
 	}
 
@@ -87,6 +90,45 @@ func (pg *Postgres) ApplyAllUpMigrations() (err error) {
 		}
 	}
 	return nil
+}
+
+// EnsureMigrationsChangelog creates a migrations changelog if necessary
+func (pg *Postgres) EnsureMigrationsChangelog() (created bool, err error) {
+	db, err := sqlOpen("pgx", pg.connectionURL)
+	if err != nil {
+		return false, fmt.Errorf("Error opening database: %v", err)
+	}
+	defer db.Close()
+
+	existRow := db.QueryRow(dedent.Dedent(`
+		SELECT EXISTS (
+			SELECT FROM information_schema.tables
+			WHERE table_schema = 'public'
+				AND	table_name = 'migrations_changelog'
+		) AS exists
+	`))
+
+	var exists bool
+	err = existRow.Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("Error checking for migrations changelog existence: %v", err)
+	}
+	if exists {
+		return false, nil
+	}
+	_, err = db.Exec(dedent.Dedent(`
+		CREATE TABLE public.migrations_changelog (
+			id VARCHAR(14) NOT NULL PRIMARY KEY
+			, name TEXT NOT NULL
+			, applied_at timestamptz NOT NULL
+		);
+	`))
+	if err != nil {
+		return false, fmt.Errorf("Error creating migrations changelog: %v", err)
+	}
+
+	return true, nil
+
 }
 
 // Init initializes the database with the given configuration

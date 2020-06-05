@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/lithammer/dedent"
 )
 
 func TestWaitForStart(t *testing.T) {
@@ -185,6 +186,73 @@ func TestApplyAllUpMigrationsChangelogError(t *testing.T) {
 	err = pg.ApplyAllUpMigrations()
 	if err == nil {
 		t.Errorf("Expected error for applying all up migrations, but got nothing")
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestEnsureChangelogExists(t *testing.T) {
+	defer resetMockVariables()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	sqlOpen = func(a, b string) (*sql.DB, error) { return db, err }
+
+	mock.ExpectQuery(dedent.Dedent(`
+		SELECT EXISTS (
+			SELECT FROM information_schema.tables
+			WHERE table_schema = 'public'
+				AND	table_name = 'migrations_changelog'
+		) AS exists
+	`)).WillReturnRows(
+		sqlmock.NewRows([]string{"exists"}).AddRow(true),
+	)
+	mock.ExpectClose()
+
+	pg := Postgres{}
+	created, err := pg.EnsureMigrationsChangelog()
+	if err != nil {
+		t.Errorf("Expected no error, but got: %v", err)
+	}
+	if created {
+		t.Errorf("Expected the created flag to be false, but it was true")
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestEnsureChangelogNotExists(t *testing.T) {
+	defer resetMockVariables()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	sqlOpen = func(a, b string) (*sql.DB, error) { return db, err }
+
+	mock.ExpectQuery(dedent.Dedent(`
+		SELECT EXISTS (
+			SELECT FROM information_schema.tables
+			WHERE table_schema = 'public'
+				AND	table_name = 'migrations_changelog'
+		) AS exists
+	`)).WillReturnRows(
+		sqlmock.NewRows([]string{"exists"}).AddRow(false),
+	)
+	mock.ExpectExec(dedent.Dedent(`
+		CREATE TABLE public.migrations_changelog (
+			  id VARCHAR(14) NOT NULL PRIMARY KEY
+			, name TEXT NOT NULL
+			, applied_at timestamptz NOT NULL
+		);
+	`)).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectClose()
+
+	pg := Postgres{}
+	created, err := pg.EnsureMigrationsChangelog()
+	if err != nil {
+		t.Errorf("Expected no error, but got: %v", err)
+	}
+	if !created {
+		t.Errorf("Expected the created flag to be true, but it was false")
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
