@@ -21,21 +21,6 @@ func fakeRunWithOutput(cmd *exec.Cmd) (stdout, stderr string, err error) {
 	return "", "", nil
 }
 
-func assertDbCalls(t *testing.T, db internal.FakeDbWithSpy) {
-	if !db.WaitForStartCalled {
-		t.Error("WaitForStart not called")
-	}
-	if !db.BootstrapCalled {
-		t.Error("Bootstrap not called")
-	}
-	if !db.ApplyAllUpMigrationsCalled {
-		t.Error("ApplyAllUpMigrations not called")
-	}
-	if !db.EnsureMigrationsChangelogCalled {
-		t.Error("EnsureMigrationsChangelog not called")
-	}
-}
-
 func TestStartDbDefaults(t *testing.T) {
 	runWithOutput = fakeRunWithOutput
 	dbLoadDb = fakeLoadWithSpy
@@ -50,7 +35,10 @@ func TestStartDbDefaults(t *testing.T) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 
-	assertDbCalls(t, fakeDb)
+	fakeDb.WaitForStartCalled(t)
+	fakeDb.BootstrapCalled(t)
+	fakeDb.ApplyAllUpMigrationsCalled(t)
+	fakeDb.EnsureMigrationsChangelogCalled(t)
 
 }
 
@@ -68,5 +56,8 @@ func TestStartDbWithFlags(t *testing.T) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 
-	assertDbCalls(t, fakeDb)
+	fakeDb.WaitForStartCalled(t)
+	fakeDb.BootstrapCalled(t)
+	fakeDb.ApplyAllUpMigrationsCalled(t)
+	fakeDb.EnsureMigrationsChangelogCalled(t)
 }

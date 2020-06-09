@@ -14,43 +14,78 @@ type applyUpMigrationsWithCountArgs struct {
 
 // FakeDbWithSpy implements the database interface and saves method calls
 type FakeDbWithSpy struct {
-	WaitForStartCalled              bool
-	BootstrapCalled                 bool
-	ApplyAllUpMigrationsCalled      bool
-	EnsureMigrationsChangelogCalled bool
-	InitCalled                      bool
-
+	initCalls                       []bool
+	bootstrapCalls                  []bool
+	waitForStartCalls               []bool
+	ensureMigrationsChangelogCalls  []bool
+	applyAllUpMigrationsCalls       []bool
 	applyUpMigrationsWithCountCalls []applyUpMigrationsWithCountArgs
 	applySpecificUpMigrationCalls   []string
 }
 
 // WaitForStart saves the call
 func (db *FakeDbWithSpy) WaitForStart(pollInterval time.Duration, retryCount int) error {
-	db.WaitForStartCalled = true
+	db.waitForStartCalls = append(db.waitForStartCalls, true)
 	return nil
+}
+
+// WaitForStartCalled checks for at least one call
+func (db *FakeDbWithSpy) WaitForStartCalled(t *testing.T) bool {
+	if len(db.waitForStartCalls) == 0 {
+		t.Errorf("WaitForStart was not called")
+		return false
+	}
+	return true
 }
 
 // Bootstrap saves the call
 func (db *FakeDbWithSpy) Bootstrap() error {
-	db.BootstrapCalled = true
+	db.bootstrapCalls = append(db.bootstrapCalls, true)
 	return nil
+}
+
+// BootstrapCalled checks for at least one call
+func (db *FakeDbWithSpy) BootstrapCalled(t *testing.T) bool {
+	if len(db.bootstrapCalls) == 0 {
+		t.Errorf("Bootstrap was not called")
+		return false
+	}
+	return true
 }
 
 // ApplyAllUpMigrations saves the call
 func (db *FakeDbWithSpy) ApplyAllUpMigrations() error {
-	db.ApplyAllUpMigrationsCalled = true
+	db.applyAllUpMigrationsCalls = append(db.applyAllUpMigrationsCalls, true)
 	return nil
+}
+
+// ApplyAllUpMigrationsCalled checks for at least one call
+func (db *FakeDbWithSpy) ApplyAllUpMigrationsCalled(t *testing.T) bool {
+	if len(db.applyAllUpMigrationsCalls) == 0 {
+		t.Errorf("ApplyAllUpMigrations was not called")
+		return false
+	}
+	return true
 }
 
 // EnsureMigrationsChangelog saves the call
 func (db *FakeDbWithSpy) EnsureMigrationsChangelog() (bool, error) {
-	db.EnsureMigrationsChangelogCalled = true
+	db.ensureMigrationsChangelogCalls = append(db.ensureMigrationsChangelogCalls, true)
 	return false, nil
+}
+
+// EnsureMigrationsChangelogCalled checks for at least one call
+func (db *FakeDbWithSpy) EnsureMigrationsChangelogCalled(t *testing.T) bool {
+	if len(db.ensureMigrationsChangelogCalls) == 0 {
+		t.Errorf("EnsureMigrationsChangelog was not called")
+		return false
+	}
+	return true
 }
 
 // Init saves the call
 func (db *FakeDbWithSpy) Init(_ config.Config) error {
-	db.InitCalled = true
+	db.initCalls = append(db.initCalls, true)
 	return nil
 }
 

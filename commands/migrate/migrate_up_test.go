@@ -44,12 +44,8 @@ func TestMigrateUpDefaults(t *testing.T) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 
-	if !fakeDb.WaitForStartCalled {
-		t.Error("WaitForStart not called")
-	}
-	if !fakeDb.EnsureMigrationsChangelogCalled {
-		t.Error("EnsureMigrationsChangelog not called")
-	}
+	fakeDb.WaitForStartCalled(t)
+	fakeDb.EnsureMigrationsChangelogCalled(t)
 	fakeDb.ApplyUpMigrationsWithCountCalledWith(t, 1, false)
 	fakeDb.ApplySpecificUpMigrationNotCalled(t)
 }
@@ -67,12 +63,8 @@ func TestMigrateUpWithCountAndAll(t *testing.T) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 
-	if !fakeDb.WaitForStartCalled {
-		t.Error("WaitForStart not called")
-	}
-	if !fakeDb.EnsureMigrationsChangelogCalled {
-		t.Error("EnsureMigrationsChangelog not called")
-	}
+	fakeDb.WaitForStartCalled(t)
+	fakeDb.EnsureMigrationsChangelogCalled(t)
 	fakeDb.ApplyUpMigrationsWithCountCalledWith(t, 2, true)
 	fakeDb.ApplySpecificUpMigrationNotCalled(t)
 
@@ -91,12 +83,8 @@ func TestMigrateUpWithOnlyOverCountAndAll(t *testing.T) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 
-	if !fakeDb.WaitForStartCalled {
-		t.Error("WaitForStart not called")
-	}
-	if !fakeDb.EnsureMigrationsChangelogCalled {
-		t.Error("EnsureMigrationsChangelog not called")
-	}
+	fakeDb.WaitForStartCalled(t)
+	fakeDb.EnsureMigrationsChangelogCalled(t)
 	fakeDb.ApplyUpMigrationsWithCountNotCalled(t)
 	fakeDb.ApplySpecificUpMigrationCalledWith(t, "sth")
 }
