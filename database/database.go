@@ -13,6 +13,12 @@ type Database interface {
 	Bootstrap() error
 	// ApplyAllUpMigrations applies all up migrations
 	ApplyAllUpMigrations() error
+	// ApplySpecificUpMigration applies one specific up migration based on a string search
+	// of the filename
+	ApplySpecificUpMigration(filter string) error
+	// ApplyUpMigrationsWithCount applies a number of up migration starting from the last
+	// by providing the "all" flag all remaining up migrations are applied
+	ApplyUpMigrationsWithCount(count int, all bool) error
 
 	// EnsureMigrationsChangelog checks if a changelog table already exists and creates it if
 	// necessary
