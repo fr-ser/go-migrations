@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -27,7 +26,7 @@ func TestGetFileMigrations(t *testing.T) {
 		t.Fatalf("Got an error loading migrations: %v", err)
 	}
 
-	diff := migrationsListEqual(expectedMigrations, gotMigrations)
+	diff := pretty.Compare(expectedMigrations, gotMigrations)
 	if diff != "" {
 		t.Error(diff)
 	}
@@ -136,17 +135,4 @@ func saveMigrationFor(basePath, application, migrationName string) FileMigration
 		PrepareSQL:  "SELECT 2",
 		VerifySQL:   "SELECT 1",
 	}
-}
-
-func migrationsListEqual(expected, got []FileMigration) (diff string) {
-	if len(expected) != len(got) {
-		return fmt.Sprintf("The expected length was %d, but got %d", len(expected), len(got))
-	}
-	// got is sorted by ID by default
-	for idx := 0; idx < len(expected); idx++ {
-		if diff := pretty.Compare(expected[idx], got[idx]); diff != "" {
-			return diff
-		}
-	}
-	return ""
 }

@@ -8,23 +8,18 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/lithammer/dedent"
 )
 
-func assertEqual(t *testing.T, a, b interface{}) {
-	if diff := pretty.Compare(a, b); diff != "" {
-		t.Errorf("The data was not the same:\n%s", diff)
-	}
-}
-
-var validConfigYaml = `
-db_type: postgres
-prepare: True
-host: localhost
-port: 35432
-db_name: zlab
-user: db_admin
-password: pass
-`
+var validConfigYaml = dedent.Dedent(`
+	db_type: postgres
+	prepare: True
+	host: localhost
+	port: 35432
+	db_name: zlab
+	user: db_admin
+	password: pass
+`)
 
 func TestLoadValidConfig(t *testing.T) {
 	f, _ := ioutil.TempFile("", "tmp_file")
@@ -49,7 +44,9 @@ func TestLoadValidConfig(t *testing.T) {
 		t.Errorf("Returned error: %v", err)
 	}
 
-	assertEqual(t, config, expectedConfig)
+	if diff := pretty.Compare(config, expectedConfig); diff != "" {
+		t.Errorf("The data was not the same:\n%s", diff)
+	}
 
 }
 

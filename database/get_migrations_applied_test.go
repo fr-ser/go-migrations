@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -36,21 +35,8 @@ func TestGetAppliedMigrations(t *testing.T) {
 		t.Fatalf("Got an error loading migrations: %v", err)
 	}
 
-	diff := appliedMigrationsListEqual(expectedMigrations, gotMigrations)
+	diff := pretty.Compare(expectedMigrations, gotMigrations)
 	if diff != "" {
 		t.Error(diff)
 	}
-}
-
-func appliedMigrationsListEqual(expected, got []AppliedMigration) (diff string) {
-	if len(expected) != len(got) {
-		return fmt.Sprintf("The expected length was %d, but got %d", len(expected), len(got))
-	}
-	// got is sorted by ID by default
-	for idx := 0; idx < len(expected); idx++ {
-		if diff := pretty.Compare(expected[idx], got[idx]); diff != "" {
-			return diff
-		}
-	}
-	return ""
 }
