@@ -134,7 +134,7 @@ func (mig *FileMigration) loadPrepare(migrationPath string) error {
 
 // AppliedMigration is a struct around a migration in the database / changelog table
 type AppliedMigration struct {
-	id        string
-	name      string
-	appliedAt time.Time
+	ID        string
+	Name      string
+	AppliedAt time.Time
 }

@@ -9,6 +9,6 @@ func resetMockVariables() {
 	sqlOpen = sql.Open
 	commonWaitForStart = database.WaitForStart
 	commonBootstrap = database.ApplyBootstrapMigration
-	commonGetMigrations = database.GetMigrations
+	commonGetFileMigrations = database.GetFileMigrations
 	commonEnsureConsistentMigrations = database.EnsureConsistentMigrations
 }

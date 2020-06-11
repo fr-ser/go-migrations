@@ -18,7 +18,7 @@ var (
 	sqlOpen                          = sql.Open
 	commonWaitForStart               = database.WaitForStart
 	commonBootstrap                  = database.ApplyBootstrapMigration
-	commonGetMigrations              = database.GetMigrations
+	commonGetFileMigrations          = database.GetFileMigrations
 	commonEnsureConsistentMigrations = database.EnsureConsistentMigrations
 )
 
@@ -74,7 +74,7 @@ func (pg *Postgres) applyUpMigration(db *sql.DB, migration database.FileMigratio
 
 // ApplyAllUpMigrations applies all up migrations
 func (pg *Postgres) ApplyAllUpMigrations() (err error) {
-	migrations, err := commonGetMigrations(pg.config.MigrationsPath)
+	migrations, err := commonGetFileMigrations(pg.config.MigrationsPath)
 	if err != nil {
 		return err
 	}
