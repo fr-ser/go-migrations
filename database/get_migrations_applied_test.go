@@ -26,7 +26,7 @@ func TestGetAppliedMigrations(t *testing.T) {
 
 	mock.ExpectQuery(dedent.Dedent(`
 		SELECT id, name, applied_at
-		FROM "schema.changelog"
+		FROM schema.changelog
 		ORDER BY id ASC
 	`)).WillReturnRows(mockRows)
 

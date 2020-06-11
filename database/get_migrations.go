@@ -67,7 +67,7 @@ func GetAppliedMigrations(db *sql.DB, changelogTable string) (
 	migrations []AppliedMigration, err error,
 ) {
 	rows, err := db.Query(fmt.Sprintf(
-		`SELECT id, name, applied_at FROM "%s" ORDER BY id ASC`,
+		`SELECT id, name, applied_at FROM %s ORDER BY id ASC`,
 		changelogTable,
 	))
 	if err != nil {

@@ -8,89 +8,149 @@ import (
 	// import to register driver
 	_ "github.com/jackc/pgx/stdlib"
 	"github.com/lithammer/dedent"
+	log "github.com/sirupsen/logrus"
 
 	"go-migrations/database"
 	"go-migrations/database/config"
 )
 
-// variables to allow mocking for tests
 var (
-	sqlOpen                          = sql.Open
-	commonWaitForStart               = database.WaitForStart
-	commonBootstrap                  = database.ApplyBootstrapMigration
-	commonEnsureConsistentMigrations = database.EnsureConsistentMigrations
-	commonGetFileMigrations          = database.GetFileMigrations
-	commonGetAppliedMigrations       = database.GetAppliedMigrations
+	mockableSQLOpen                    = sql.Open
+	mockableWaitForStart               = database.WaitForStart
+	mockableBootstrap                  = database.ApplyBootstrapMigration
+	mockableEnsureConsistentMigrations = database.EnsureConsistentMigrations
+	mockableGetFileMigrations          = database.GetFileMigrations
+	mockableGetAppliedMigrations       = database.GetAppliedMigrations
+	mockableApplyUpMigration           = database.ApplyUpMigration
+	mockableFilterUpMigrationsByText   = database.FilterUpMigrationsByText
+	mockableFilterUpMigrationsByCount  = database.FilterUpMigrationsByCount
 )
 
 var changelogTable = "public.migrations_changelog"
 
 // Postgres is a model to apply migrations against a PostgreSQL database
 type Postgres struct {
-	config         config.Config
-	connectionURL  string
-	fileMigrations []database.FileMigration
+	config            config.Config
+	connectionURL     string
+	fileMigrations    []database.FileMigration
+	appliedMigrations []database.AppliedMigration
 }
 
 // WaitForStart tries to connect to the database within a timeout
 func (pg *Postgres) WaitForStart(pollInterval time.Duration, retryCount int) error {
-	db, err := sqlOpen("pgx", pg.connectionURL)
+	db, err := mockableSQLOpen("pgx", pg.connectionURL)
 	if err != nil {
 		return fmt.Errorf("Error opening database: %v", err)
 	}
 	defer db.Close()
 
-	return commonWaitForStart(db, pollInterval, retryCount)
+	return mockableWaitForStart(db, pollInterval, retryCount)
 }
 
 // Bootstrap applies the bootstrap migration
 func (pg *Postgres) Bootstrap() error {
-	db, err := sqlOpen("pgx", pg.connectionURL)
+	db, err := mockableSQLOpen("pgx", pg.connectionURL)
 	if err != nil {
 		return fmt.Errorf("Error opening database: %v", err)
 	}
 	defer db.Close()
 
-	return commonBootstrap(db, pg.config.MigrationsPath)
-}
-
-// applyUpMigration applies the up migration in a transaction
-// Depending on the config it also first runs the prepare script
-// After the migration a verify script is executed and rolled back in a separate transaction.
-// If the verify script fails the downmigration is executed (also in a transaction)
-func (pg *Postgres) applyUpMigration(db *sql.DB, migration database.FileMigration) error {
-	if err := database.ApplyUpMigration(db, migration); err != nil {
-		return err
-	}
-
-	if err := database.InsertToChangelog(db, migration, changelogTable); err != nil {
-		return err
-	}
-
-	if err := database.ApplyVerify(db, migration); err != nil {
-		return err
-	}
-
-	return nil
+	return mockableBootstrap(db, pg.config.MigrationsPath)
 }
 
 // ApplyAllUpMigrations applies all up migrations
 func (pg *Postgres) ApplyAllUpMigrations() (err error) {
 	if pg.fileMigrations == nil {
-		pg.fileMigrations, err = commonGetFileMigrations(pg.config.MigrationsPath)
+		pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
 		if err != nil {
 			return err
 		}
 
 	}
-	db, err := sqlOpen("pgx", pg.connectionURL)
+	db, err := mockableSQLOpen("pgx", pg.connectionURL)
 	if err != nil {
 		return fmt.Errorf("Error opening database: %v", err)
 	}
 	defer db.Close()
 
 	for _, migration := range pg.fileMigrations {
-		err = pg.applyUpMigration(db, migration)
+		err = mockableApplyUpMigration(db, migration, changelogTable)
+		if err != nil {
+			return err
+		}
+	}
+	log.Infof("Applied %d migrations", len(pg.fileMigrations))
+	return nil
+}
+
+// ApplySpecificUpMigration applies one up migration by a filter
+func (pg *Postgres) ApplySpecificUpMigration(filter string) (err error) {
+	if pg.fileMigrations == nil {
+		pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	db, err := mockableSQLOpen("pgx", pg.connectionURL)
+	if err != nil {
+		return fmt.Errorf("Error opening database: %v", err)
+	}
+	defer db.Close()
+
+	if pg.appliedMigrations == nil {
+		pg.appliedMigrations, err = mockableGetAppliedMigrations(db, changelogTable)
+		if err != nil {
+			return err
+		}
+	}
+
+	migration, err := mockableFilterUpMigrationsByText(filter, pg.fileMigrations, pg.appliedMigrations)
+	if err != nil {
+		return err
+	}
+
+	err = mockableApplyUpMigration(db, migration, changelogTable)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ApplyUpMigrationsWithCount applies up migration by a count
+func (pg *Postgres) ApplyUpMigrationsWithCount(count uint, all bool) (err error) {
+	if pg.fileMigrations == nil {
+		pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	db, err := mockableSQLOpen("pgx", pg.connectionURL)
+	if err != nil {
+		return fmt.Errorf("Error opening database: %v", err)
+	}
+	defer db.Close()
+
+	if pg.appliedMigrations == nil {
+		pg.appliedMigrations, err = mockableGetAppliedMigrations(db, changelogTable)
+		if err != nil {
+			return err
+		}
+	}
+
+	migrations, err := mockableFilterUpMigrationsByCount(
+		count, all, pg.fileMigrations, pg.appliedMigrations,
+	)
+	if err != nil {
+		return err
+	}
+
+	for _, migration := range migrations {
+		err = mockableApplyUpMigration(db, migration, changelogTable)
 		if err != nil {
 			return err
 		}
@@ -98,19 +158,9 @@ func (pg *Postgres) ApplyAllUpMigrations() (err error) {
 	return nil
 }
 
-// ApplySpecificUpMigration applies one up migration by a filter
-func (pg *Postgres) ApplySpecificUpMigration(filter string) error {
-	return fmt.Errorf("not implemented")
-}
-
-// ApplyUpMigrationsWithCount applies up migration by a count
-func (pg *Postgres) ApplyUpMigrationsWithCount(count uint, all bool) error {
-	return fmt.Errorf("not implemented")
-}
-
 // EnsureMigrationsChangelog creates a migrations changelog if necessary
 func (pg *Postgres) EnsureMigrationsChangelog() (created bool, err error) {
-	db, err := sqlOpen("pgx", pg.connectionURL)
+	db, err := mockableSQLOpen("pgx", pg.connectionURL)
 	if err != nil {
 		return false, fmt.Errorf("Error opening database: %v", err)
 	}
@@ -134,7 +184,7 @@ func (pg *Postgres) EnsureMigrationsChangelog() (created bool, err error) {
 	}
 	_, err = db.Exec(dedent.Dedent(`
 		CREATE TABLE public.migrations_changelog (
-			id VARCHAR(14) NOT NULL PRIMARY KEY
+			  id VARCHAR(14) NOT NULL PRIMARY KEY
 			, name TEXT NOT NULL
 			, applied_at timestamptz NOT NULL
 		);
@@ -147,24 +197,30 @@ func (pg *Postgres) EnsureMigrationsChangelog() (created bool, err error) {
 }
 
 // EnsureConsistentMigrations checks for inconsistencies in the changelog
-func (pg *Postgres) EnsureConsistentMigrations() error {
-	db, err := sqlOpen("pgx", pg.connectionURL)
-	if err != nil {
-		return fmt.Errorf("Error opening database: %v", err)
-	}
-	defer db.Close()
-
+func (pg *Postgres) EnsureConsistentMigrations() (err error) {
 	if pg.fileMigrations == nil {
-		pg.fileMigrations, err = commonGetFileMigrations(pg.config.MigrationsPath)
+		pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
 		if err != nil {
 			return err
 		}
 
 	}
 
-	appliedMigrations, err := commonGetAppliedMigrations(db, changelogTable)
+	if pg.appliedMigrations == nil {
+		db, err := mockableSQLOpen("pgx", pg.connectionURL)
+		if err != nil {
+			return fmt.Errorf("Error opening database: %v", err)
+		}
+		defer db.Close()
 
-	return commonEnsureConsistentMigrations(pg.fileMigrations, appliedMigrations)
+		pg.appliedMigrations, err = mockableGetAppliedMigrations(db, changelogTable)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return mockableEnsureConsistentMigrations(pg.fileMigrations, pg.appliedMigrations)
 }
 
 // Init initializes the database with the given configuration

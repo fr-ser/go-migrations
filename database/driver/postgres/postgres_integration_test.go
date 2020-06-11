@@ -23,13 +23,13 @@ func TestApplyBootstrap(t *testing.T) {
 	bootstrapSQL := []byte(
 		dedent.Dedent(`
 			-- Some SQL comment
-			CREATE SCHEMA baz;
-			CREATE TABLE baz.foo (
+			CREATE SCHEMA boot_baz;
+			CREATE TABLE boot_baz.foo (
 				  id VARCHAR(14) NOT NULL PRIMARY KEY
 				, name TEXT NOT NULL
 				, applied_at timestamptz NOT NULL
 			);
-			CREATE TABLE baz.bar (
+			CREATE TABLE boot_baz.bar (
 				id VARCHAR(14) NOT NULL PRIMARY KEY
 		  	);
 		`),
@@ -45,19 +45,20 @@ func TestApplyBootstrap(t *testing.T) {
 		t.Fatalf("Error during bootstrap: %v", err)
 	}
 
-	_, err = dbConn.Exec("SELECT id, name, applied_at FROM baz.foo")
+	_, err = dbConn.Exec("SELECT id, name, applied_at FROM boot_baz.foo")
 	if err != nil {
 		t.Errorf("Error checking bootstrap: %v", err)
 	}
-	_, err = dbConn.Exec("SELECT id FROM baz.bar")
+	_, err = dbConn.Exec("SELECT id FROM boot_baz.bar")
 	if err != nil {
 		t.Errorf("Error checking bootstrap: %v", err)
 	}
 }
 
 func TestApplyAllUpMigrations(t *testing.T) {
-	cleanup, migrationPath := setupFolder(t)
-	defer cleanup()
+	cleanupFileMigrations, migrationPath := setupFolder(t)
+	defer cleanupFileMigrations()
+	defer cleanupChangelog()
 
 	firstMigration := []byte(dedent.Dedent(`
 		CREATE TABLE public.all_fiz (fuz TEXT PRIMARY KEY)
@@ -117,8 +118,9 @@ func TestApplyAllUpMigrations(t *testing.T) {
 }
 
 func TestApplyUpMigrationsWithCount(t *testing.T) {
-	cleanup, migrationPath := setupFolder(t)
-	defer cleanup()
+	cleanupFileMigrations, migrationPath := setupFolder(t)
+	defer cleanupFileMigrations()
+	defer cleanupChangelog()
 
 	firstMigration := []byte(dedent.Dedent(`
 		CREATE TABLE public.count_foo (fuz TEXT PRIMARY KEY)
@@ -181,7 +183,7 @@ func TestApplyUpMigrationsWithCount(t *testing.T) {
 		t.Fatalf("Error during changelog creation: %v", err)
 	}
 
-	if err := db.ApplyUpMigrationsWithCount(2, false); err != nil {
+	if err := db.ApplyUpMigrationsWithCount(3, false); err != nil {
 		t.Fatalf("Error during up migration: %v", err)
 	}
 
@@ -191,13 +193,16 @@ func TestApplyUpMigrationsWithCount(t *testing.T) {
 	if rowCount != 2 {
 		t.Fatalf(
 			dedent.Dedent(`
-				Unexpected rowCount (%d). Incorrect up migration.
+				Expected rowCount of %d, but got %d. Incorrect up migration.
 				ScanErr: %v
 			`),
-			rowCount, scanErr,
+			2, rowCount, scanErr,
 		)
 	}
+}
 
+func cleanupChangelog() {
+	dbConn.Exec(`TRUNCATE public.migrations_changelog`)
 }
 
 func setupFolder(t *testing.T) (func(), string) {
