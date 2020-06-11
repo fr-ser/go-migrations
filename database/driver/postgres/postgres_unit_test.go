@@ -3,12 +3,13 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"go-migrations/database"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/lithammer/dedent"
+
+	"go-migrations/database"
 )
 
 func TestWaitForStart(t *testing.T) {
@@ -48,6 +49,29 @@ func TestBootstrap(t *testing.T) {
 
 	pg := Postgres{}
 	pg.Bootstrap()
+
+	if !fakeCalled {
+		t.Errorf("Expected Bootstrap to be called")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestEnsureConsistentMigrations(t *testing.T) {
+	defer resetMockVariables()
+	db, mock, err := sqlmock.New()
+	mock.ExpectClose()
+	sqlOpen = func(a, b string) (*sql.DB, error) { return db, err }
+
+	fakeCalled := false
+	commonEnsureConsistentMigrations = func(a *sql.DB) error {
+		fakeCalled = true
+		return nil
+	}
+
+	pg := Postgres{}
+	pg.EnsureConsistentMigrations()
 
 	if !fakeCalled {
 		t.Errorf("Expected Bootstrap to be called")

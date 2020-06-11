@@ -115,3 +115,16 @@ func TestApplyBootstrapFailure(t *testing.T) {
 		t.Fatalf("there were unfulfilled expectations: %s", err)
 	}
 }
+func TestEnsureConsistentMigrations(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	err := EnsureConsistentMigrations(db)
+	if err != nil {
+		t.Fatalf("Received error during EnsureConsistentMigrations: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("there were unfulfilled expectations: %s", err)
+	}
+}

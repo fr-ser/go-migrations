@@ -15,10 +15,11 @@ import (
 
 // variables to allow mocking for tests
 var (
-	sqlOpen             = sql.Open
-	commonWaitForStart  = database.WaitForStart
-	commonBootstrap     = database.ApplyBootstrapMigration
-	commonGetMigrations = database.GetMigrations
+	sqlOpen                          = sql.Open
+	commonWaitForStart               = database.WaitForStart
+	commonBootstrap                  = database.ApplyBootstrapMigration
+	commonGetMigrations              = database.GetMigrations
+	commonEnsureConsistentMigrations = database.EnsureConsistentMigrations
 )
 
 var changelogTable = "public.migrations_changelog"
@@ -142,7 +143,13 @@ func (pg *Postgres) EnsureMigrationsChangelog() (created bool, err error) {
 
 // EnsureConsistentMigrations checks for inconsistencies in the changelog
 func (pg *Postgres) EnsureConsistentMigrations() error {
-	return fmt.Errorf("not implemented")
+	db, err := sqlOpen("pgx", pg.connectionURL)
+	if err != nil {
+		return fmt.Errorf("Error opening database: %v", err)
+	}
+	defer db.Close()
+
+	return commonEnsureConsistentMigrations(db)
 }
 
 // Init initializes the database with the given configuration
