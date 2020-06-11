@@ -7,6 +7,8 @@ import (
 	"go-migrations/database/config"
 )
 
+// TODO: change to "assertWaitForStartCalled(true)"
+
 type applyUpMigrationsWithCountArgs struct {
 	count int
 	all   bool
@@ -18,6 +20,7 @@ type FakeDbWithSpy struct {
 	bootstrapCalls                  []bool
 	waitForStartCalls               []bool
 	ensureMigrationsChangelogCalls  []bool
+	ensureConsistentMigrationsCalls []bool
 	applyAllUpMigrationsCalls       []bool
 	applyUpMigrationsWithCountCalls []applyUpMigrationsWithCountArgs
 	applySpecificUpMigrationCalls   []string
@@ -63,6 +66,21 @@ func (db *FakeDbWithSpy) ApplyAllUpMigrations() error {
 func (db *FakeDbWithSpy) ApplyAllUpMigrationsCalled(t *testing.T) bool {
 	if len(db.applyAllUpMigrationsCalls) == 0 {
 		t.Errorf("ApplyAllUpMigrations was not called")
+		return false
+	}
+	return true
+}
+
+// EnsureConsistentMigrations checks for inconsistencies in the changelog
+func (db *FakeDbWithSpy) EnsureConsistentMigrations() error {
+	db.ensureConsistentMigrationsCalls = append(db.ensureConsistentMigrationsCalls, true)
+	return nil
+}
+
+// EnsureConsistentMigrationsCalled checks for at least one call
+func (db *FakeDbWithSpy) EnsureConsistentMigrationsCalled(t *testing.T) bool {
+	if len(db.ensureConsistentMigrationsCalls) == 0 {
+		t.Errorf("EnsureConsistentMigrations was not called")
 		return false
 	}
 	return true

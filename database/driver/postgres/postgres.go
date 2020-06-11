@@ -94,12 +94,12 @@ func (pg *Postgres) ApplyAllUpMigrations() (err error) {
 
 // ApplySpecificUpMigration applies one up migration by a filter
 func (pg *Postgres) ApplySpecificUpMigration(filter string) error {
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 // ApplyUpMigrationsWithCount applies up migration by a count
 func (pg *Postgres) ApplyUpMigrationsWithCount(count int, all bool) error {
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 // EnsureMigrationsChangelog creates a migrations changelog if necessary
@@ -138,7 +138,11 @@ func (pg *Postgres) EnsureMigrationsChangelog() (created bool, err error) {
 	}
 
 	return true, nil
+}
 
+// EnsureConsistentMigrations checks for inconsistencies in the changelog
+func (pg *Postgres) EnsureConsistentMigrations() error {
+	return fmt.Errorf("not implemented")
 }
 
 // Init initializes the database with the given configuration

@@ -46,6 +46,7 @@ func TestMigrateUpDefaults(t *testing.T) {
 
 	fakeDb.WaitForStartCalled(t)
 	fakeDb.EnsureMigrationsChangelogCalled(t)
+	fakeDb.EnsureConsistentMigrationsCalled(t)
 	fakeDb.ApplyUpMigrationsWithCountCalledWith(t, 1, false)
 	fakeDb.ApplySpecificUpMigrationNotCalled(t)
 }
@@ -65,6 +66,7 @@ func TestMigrateUpWithCountAndAll(t *testing.T) {
 
 	fakeDb.WaitForStartCalled(t)
 	fakeDb.EnsureMigrationsChangelogCalled(t)
+	fakeDb.EnsureConsistentMigrationsCalled(t)
 	fakeDb.ApplyUpMigrationsWithCountCalledWith(t, 2, true)
 	fakeDb.ApplySpecificUpMigrationNotCalled(t)
 

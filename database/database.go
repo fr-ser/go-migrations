@@ -23,6 +23,9 @@ type Database interface {
 	// EnsureMigrationsChangelog checks if a changelog table already exists and creates it if
 	// necessary
 	EnsureMigrationsChangelog() (created bool, err error)
+	// EnsureConsistentMigrations checks if all applied migrations exist as local files
+	// and if no local migration has been "skipped" (newer migrations applied)
+	EnsureConsistentMigrations() error
 	// Init initializes the database with the given configuration
 	Init(config.Config) error
 }

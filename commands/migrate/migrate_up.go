@@ -69,6 +69,9 @@ var migrateUpCommand = &cli.Command{
 				return err
 			}
 		} else {
+			if err := db.EnsureConsistentMigrations(); err != nil {
+				return err
+			}
 			if err := db.ApplyUpMigrationsWithCount(c.Int("count"), c.Bool("all")); err != nil {
 				return err
 			}
