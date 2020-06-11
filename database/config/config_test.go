@@ -53,14 +53,13 @@ func TestLoadValidConfig(t *testing.T) {
 
 }
 
-var invalidConfigFiles = []struct{ name, file string }{
-	{"missing port", configWithoutLineFor("port")},
-	{"missing host", configWithoutLineFor("host")},
-	{"missing database name", configWithoutLineFor("db_name")},
-	{"missing user", configWithoutLineFor("user")},
-}
-
 func TestInvalidConfigFile(t *testing.T) {
+	var invalidConfigFiles = []struct{ name, file string }{
+		{"missing port", configWithoutLineFor("port")},
+		{"missing host", configWithoutLineFor("host")},
+		{"missing database name", configWithoutLineFor("db_name")},
+		{"missing user", configWithoutLineFor("user")},
+	}
 	for _, configFile := range invalidConfigFiles {
 		f, _ := ioutil.TempFile("", "tmp_file")
 		defer syscall.Unlink(f.Name())

@@ -98,7 +98,7 @@ func (pg *Postgres) ApplySpecificUpMigration(filter string) error {
 }
 
 // ApplyUpMigrationsWithCount applies up migration by a count
-func (pg *Postgres) ApplyUpMigrationsWithCount(count int, all bool) error {
+func (pg *Postgres) ApplyUpMigrationsWithCount(count uint, all bool) error {
 	return fmt.Errorf("not implemented")
 }
 

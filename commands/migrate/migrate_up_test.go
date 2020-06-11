@@ -16,6 +16,7 @@ var app = cli.NewApp()
 
 var dbLoadArgs []string
 var fakeDb internal.FakeDbWithSpy
+var fakeDbLoaded bool
 
 func TestMain(m *testing.M) {
 	app.Commands = []*cli.Command{
@@ -44,17 +45,17 @@ func TestMigrateUpDefaults(t *testing.T) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 
-	fakeDb.WaitForStartCalled(t)
-	fakeDb.EnsureMigrationsChangelogCalled(t)
-	fakeDb.EnsureConsistentMigrationsCalled(t)
-	fakeDb.ApplyUpMigrationsWithCountCalledWith(t, 1, false)
-	fakeDb.ApplySpecificUpMigrationNotCalled(t)
+	fakeDb.AssertWaitForStartCalled(t, true)
+	fakeDb.AssertEnsureMigrationsChangelogCalled(t, true)
+	fakeDb.AssertEnsureConsistentMigrationsCalled(t, true)
+	fakeDb.AssertApplyUpMigrationsWithCountCalledWith(t, 1, false)
+	fakeDb.AssertApplySpecificUpMigrationCalled(t, false)
 }
 
-func TestMigrateUpWithCountAndAll(t *testing.T) {
+func TestMigrateUpWithCount(t *testing.T) {
 	dbLoadDb = fakeLoadWithSpy
 
-	args := []string{"sth.exe", "migrate", "up", "--count", "2", "--all"}
+	args := []string{"sth.exe", "migrate", "up", "--count", "2"}
 	if err := app.Run(args); err != nil {
 		t.Errorf("Error running command - %s", err)
 	}
@@ -64,18 +65,18 @@ func TestMigrateUpWithCountAndAll(t *testing.T) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 
-	fakeDb.WaitForStartCalled(t)
-	fakeDb.EnsureMigrationsChangelogCalled(t)
-	fakeDb.EnsureConsistentMigrationsCalled(t)
-	fakeDb.ApplyUpMigrationsWithCountCalledWith(t, 2, true)
-	fakeDb.ApplySpecificUpMigrationNotCalled(t)
+	fakeDb.AssertWaitForStartCalled(t, true)
+	fakeDb.AssertEnsureMigrationsChangelogCalled(t, true)
+	fakeDb.AssertEnsureConsistentMigrationsCalled(t, true)
+	fakeDb.AssertApplyUpMigrationsWithCountCalledWith(t, 2, false)
+	fakeDb.AssertApplySpecificUpMigrationCalled(t, false)
 
 }
 
-func TestMigrateUpWithOnlyOverCountAndAll(t *testing.T) {
+func TestMigrateUpWithAll(t *testing.T) {
 	dbLoadDb = fakeLoadWithSpy
 
-	args := []string{"sth.exe", "migrate", "up", "--count", "2", "--all", "--only", "sth"}
+	args := []string{"sth.exe", "migrate", "up", "--all"}
 	if err := app.Run(args); err != nil {
 		t.Errorf("Error running command - %s", err)
 	}
@@ -85,8 +86,56 @@ func TestMigrateUpWithOnlyOverCountAndAll(t *testing.T) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 
-	fakeDb.WaitForStartCalled(t)
-	fakeDb.EnsureMigrationsChangelogCalled(t)
-	fakeDb.ApplyUpMigrationsWithCountNotCalled(t)
-	fakeDb.ApplySpecificUpMigrationCalledWith(t, "sth")
+	fakeDb.AssertWaitForStartCalled(t, true)
+	fakeDb.AssertEnsureMigrationsChangelogCalled(t, true)
+	fakeDb.AssertEnsureConsistentMigrationsCalled(t, true)
+	fakeDb.AssertApplyUpMigrationsWithCountCalledWith(t, 0, true)
+	fakeDb.AssertApplySpecificUpMigrationCalled(t, false)
+
+}
+
+func TestMigrateUpWithOnly(t *testing.T) {
+	dbLoadDb = fakeLoadWithSpy
+
+	args := []string{"sth.exe", "migrate", "up", "--only", "sth"}
+	if err := app.Run(args); err != nil {
+		t.Errorf("Error running command - %s", err)
+	}
+
+	expected := []string{"./migrations/zlab", "development"}
+	if !internal.StrSliceEqual(dbLoadArgs, expected) {
+		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
+	}
+
+	fakeDb.AssertWaitForStartCalled(t, true)
+	fakeDb.AssertEnsureMigrationsChangelogCalled(t, true)
+	fakeDb.AssertApplySpecificUpMigrationCalledWith(t, "sth")
+	fakeDb.AssertApplyUpMigrationsWithCountCalled(t, false)
+	fakeDb.AssertEnsureConsistentMigrationsCalled(t, false)
+}
+
+func TestMigrateUpErrorWithMultipleParams(t *testing.T) {
+	fakeDbLoaded = false
+	dbLoadDb = fakeLoadWithSpy
+
+	var invalidArgs = [][]string{
+		{"sth.exe", "migrate", "up", "--only", "sth", "--all"},
+		{"sth.exe", "migrate", "up", "--only", "sth", "--count", "1"},
+		{"sth.exe", "migrate", "up", "--all", "--count", "1"},
+		{"sth.exe", "migrate", "up", "--count", "-2"},
+		{"sth.exe", "migrate", "up", "--count", "0"},
+		{"sth.exe", "migrate", "up", "--count", "two"},
+		{"sth.exe", "migrate", "up", "--all", "--count", "1", "--only", "sth"},
+	}
+
+	for _, args := range invalidArgs {
+		if err := app.Run(args); err == nil {
+			t.Errorf("Got no error for wrong parameters: %v", args)
+		}
+		if fakeDbLoaded {
+			t.Errorf("Loaded the database even though it shouldn't")
+		}
+
+	}
+
 }

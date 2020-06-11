@@ -1,6 +1,8 @@
 package migrate
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -16,16 +18,16 @@ var (
 )
 
 var flags = []cli.Flag{
-	&cli.IntFlag{
-		Name: "count", Aliases: []string{"c"}, Value: 1,
-		Usage: "number of migrations to apply starting from the last applied",
+	&cli.StringFlag{
+		Name: "count", Aliases: []string{"c"},
+		Usage: "number of migrations to apply (default action is to apply one)",
 	},
 	&cli.BoolFlag{
-		Name: "all", Aliases: []string{"A"}, Value: false,
-		Usage: "apply all outstanding up migrations (starting from the last applied)",
+		Name: "all", Aliases: []string{"A"},
+		Usage: "apply all outstanding up migrations",
 	},
 	&cli.StringFlag{
-		Name: "only", Aliases: []string{"o"}, Value: "",
+		Name: "only", Aliases: []string{"o"},
 		Usage: "apply only one migration containing this string",
 	},
 	&cli.StringFlag{
@@ -45,6 +47,10 @@ var migrateUpCommand = &cli.Command{
 	Flags:  flags,
 	Before: commands.NoArguments,
 	Action: func(c *cli.Context) error {
+
+		if err := checkFlags(c); err != nil {
+			return err
+		}
 
 		db, err := dbLoadDb(c.String("migrations-path"), c.String("environment"))
 		if err != nil {
@@ -72,11 +78,46 @@ var migrateUpCommand = &cli.Command{
 			if err := db.EnsureConsistentMigrations(); err != nil {
 				return err
 			}
-			if err := db.ApplyUpMigrationsWithCount(c.Int("count"), c.Bool("all")); err != nil {
+
+			upCount := c.Uint("count")
+			if upCount == 0 && !c.Bool("all") {
+				upCount = 1
+			}
+			if err := db.ApplyUpMigrationsWithCount(upCount, c.Bool("all")); err != nil {
 				return err
 			}
 		}
 		log.Info("Up migration completed")
 		return nil
 	},
+}
+
+func checkFlags(c *cli.Context) error {
+	upParamsCount := 0
+	if c.String("count") != "" {
+		upParamsCount = upParamsCount + 1
+	}
+	if c.String("only") != "" {
+		upParamsCount = upParamsCount + 1
+	}
+	if c.Bool("all") {
+		upParamsCount = upParamsCount + 1
+	}
+
+	if upParamsCount > 1 {
+		return fmt.Errorf(
+			"Cannot provide more than one of count (%d), 'only' (%s) and all (%t)",
+			c.Uint("count"), c.String("only"), c.Bool("all"),
+		)
+	}
+
+	if c.String("count") != "" {
+		value, err := strconv.ParseUint(c.String("count"), 10, 64)
+		if err != nil || value < 1 {
+			return fmt.Errorf("Could not format count (%s) to positive integer", c.String("count"))
+		}
+
+	}
+
+	return nil
 }

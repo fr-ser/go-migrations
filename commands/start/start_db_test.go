@@ -35,10 +35,10 @@ func TestStartDbDefaults(t *testing.T) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 
-	fakeDb.WaitForStartCalled(t)
-	fakeDb.BootstrapCalled(t)
-	fakeDb.ApplyAllUpMigrationsCalled(t)
-	fakeDb.EnsureMigrationsChangelogCalled(t)
+	fakeDb.AssertWaitForStartCalled(t, true)
+	fakeDb.AssertBootstrapCalled(t, true)
+	fakeDb.AssertApplyAllUpMigrationsCalled(t, true)
+	fakeDb.AssertEnsureMigrationsChangelogCalled(t, true)
 
 }
 
@@ -56,8 +56,8 @@ func TestStartDbWithFlags(t *testing.T) {
 		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
 	}
 
-	fakeDb.WaitForStartCalled(t)
-	fakeDb.BootstrapCalled(t)
-	fakeDb.ApplyAllUpMigrationsCalled(t)
-	fakeDb.EnsureMigrationsChangelogCalled(t)
+	fakeDb.AssertWaitForStartCalled(t, true)
+	fakeDb.AssertBootstrapCalled(t, true)
+	fakeDb.AssertApplyAllUpMigrationsCalled(t, true)
+	fakeDb.AssertEnsureMigrationsChangelogCalled(t, true)
 }
