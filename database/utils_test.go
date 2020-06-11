@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/lithammer/dedent"
 )
 
 func TestWaitWithRunningDb(t *testing.T) {
@@ -115,16 +117,54 @@ func TestApplyBootstrapFailure(t *testing.T) {
 		t.Fatalf("there were unfulfilled expectations: %s", err)
 	}
 }
-func TestEnsureConsistentMigrations(t *testing.T) {
-	db, mock, _ := sqlmock.New()
-	defer db.Close()
 
-	err := EnsureConsistentMigrations(nil, nil)
-	if err != nil {
-		t.Fatalf("Received error during EnsureConsistentMigrations: %v", err)
+func TestEnsureConsistentMigrationsSuccess(t *testing.T) {
+	migrations := []struct {
+		file    []FileMigration
+		applied []AppliedMigration
+	}{
+		{file: []FileMigration{{ID: "a"}}, applied: []AppliedMigration{{ID: "a"}}},
+		{file: []FileMigration{{ID: "a"}, {ID: "b"}}, applied: []AppliedMigration{{ID: "a"}}},
+		{
+			file:    []FileMigration{{ID: "a"}, {ID: "b"}, {ID: "c"}},
+			applied: []AppliedMigration{{ID: "a"}, {ID: "b"}},
+		},
 	}
+	for idx, migration := range migrations {
+		t.Run(fmt.Sprintf("%d", idx), func(t *testing.T) {
+			err := EnsureConsistentMigrations(migration.file, migration.applied)
+			if err != nil {
+				t.Fatalf("Received error during EnsureConsistentMigrations: %v", err)
+			}
+		})
+	}
+}
 
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("there were unfulfilled expectations: %s", err)
+func TestEnsureConsistentMigrationsError(t *testing.T) {
+	migrations := []struct {
+		file    []FileMigration
+		applied []AppliedMigration
+	}{
+		{file: []FileMigration{}, applied: []AppliedMigration{{ID: "a"}}},
+		{file: []FileMigration{{ID: "a"}}, applied: []AppliedMigration{{ID: "b"}}},
+		{
+			file:    []FileMigration{{ID: "a"}, {ID: "b"}, {ID: "c"}},
+			applied: []AppliedMigration{{ID: "a"}, {ID: "c"}},
+		},
+	}
+	for idx, migration := range migrations {
+		t.Run(fmt.Sprintf("%d", idx), func(t *testing.T) {
+			err := EnsureConsistentMigrations(migration.file, migration.applied)
+			if err == nil {
+				t.Fatalf(
+					dedent.Dedent(`
+						Received no error during EnsureConsistentMigrations.
+						FileMigrations: %v
+						AppliedMigrations: %v
+					`),
+					migration.file, migration.applied,
+				)
+			}
+		})
 	}
 }

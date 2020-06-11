@@ -45,8 +45,23 @@ func ApplyBootstrapMigration(db *sql.DB, migrationsPath string) error {
 	return err
 }
 
-// EnsureConsistentMigrations checks if all applied migrations exist as local files
+// EnsureConsistentMigrations checks if all applied migrations (by ID) exist as local files
 // and if no local migration has been "skipped" (newer migrations applied)
 func EnsureConsistentMigrations(fileMigrations []FileMigration, appliedMigrations []AppliedMigration) error {
-	return fmt.Errorf("not implemented")
+	for idx := 0; idx < len(appliedMigrations); idx++ {
+		if len(fileMigrations) <= idx || fileMigrations[idx].ID != appliedMigrations[idx].ID {
+			moreInfo := "For more information execute the migrate status command"
+			if idx > 0 {
+				return fmt.Errorf(
+					"FileMigrations and AppliedMigrations are out of sync after %s\n%s",
+					fileMigrations[idx-1].ID, moreInfo,
+				)
+			}
+			return fmt.Errorf(
+				"FileMigrations and AppliedMigrations are out of sync since the beginning.\n%s",
+				moreInfo,
+			)
+		}
+	}
+	return nil
 }
