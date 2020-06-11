@@ -60,25 +60,25 @@ func TestApplyAllUpMigrations(t *testing.T) {
 	defer cleanup()
 
 	firstMigration := []byte(dedent.Dedent(`
-		CREATE TABLE public.fiz (fuz TEXT PRIMARY KEY)
+		CREATE TABLE public.all_fiz (fuz TEXT PRIMARY KEY)
 		-- //@UNDO
-		DROP TABLE public.fiz
+		DROP TABLE public.all_fiz
 	`))
 	ioutil.WriteFile(
-		filepath.Join(migrationPath, "_common", "20171101000001_foo.sql"),
+		filepath.Join(migrationPath, "common", "20171101000001_foo.sql"),
 		firstMigration,
 		0777,
 	)
 	ioutil.WriteFile(filepath.Join(
-		migrationPath, "_common", "verify", "20171101000001_foo.sql"),
+		migrationPath, "common", "verify", "20171101000001_foo.sql"),
 		[]byte("SELECT 1"),
 		0777,
 	)
 
 	secondMigration := []byte(dedent.Dedent(`
-		CREATE TABLE public.biz (buz TEXT PRIMARY KEY)
+		CREATE TABLE public.all_biz (buz TEXT PRIMARY KEY)
 		-- //@UNDO
-		DROP TABLE public.biz
+		DROP TABLE public.all_biz
 	`))
 	os.Mkdir(filepath.Join(migrationPath, "analytics"), 0777)
 	ioutil.WriteFile(
@@ -106,14 +106,98 @@ func TestApplyAllUpMigrations(t *testing.T) {
 		t.Fatalf("Error during up migration: %v", err)
 	}
 
-	_, err = dbConn.Exec("SELECT fuz FROM public.fiz")
+	_, err = dbConn.Exec("SELECT fuz FROM public.all_fiz")
 	if err != nil {
 		t.Errorf("Error checking firstMigration: %v", err)
 	}
-	_, err = dbConn.Exec("SELECT buz FROM public.biz")
+	_, err = dbConn.Exec("SELECT buz FROM public.all_biz")
 	if err != nil {
 		t.Errorf("Error checking secondMigration: %v", err)
 	}
+}
+
+func TestApplyUpMigrationsWithCount(t *testing.T) {
+	cleanup, migrationPath := setupFolder(t)
+	defer cleanup()
+
+	firstMigration := []byte(dedent.Dedent(`
+		CREATE TABLE public.count_foo (fuz TEXT PRIMARY KEY)
+		-- //@UNDO
+		DROP TABLE public.count_foo
+	`))
+	ioutil.WriteFile(
+		filepath.Join(migrationPath, "common", "20171101000001_foo.sql"),
+		firstMigration,
+		0777,
+	)
+	ioutil.WriteFile(filepath.Join(
+		migrationPath, "common", "verify", "20171101000001_foo.sql"),
+		[]byte("SELECT 1"),
+		0777,
+	)
+
+	secondMigration := []byte(dedent.Dedent(`
+		INSERT INTO public.count_foo (fuz) VALUES ('one');
+		-- //@UNDO
+		DELETE FROM public.count_foo WHERE fuz = 'one'
+	`))
+	os.Mkdir(filepath.Join(migrationPath, "analytics"), 0777)
+	ioutil.WriteFile(
+		filepath.Join(migrationPath, "analytics", "20171101000002_bar.sql"),
+		secondMigration,
+		0777,
+	)
+	os.Mkdir(filepath.Join(migrationPath, "analytics", "verify"), 0777)
+	ioutil.WriteFile(filepath.Join(
+		migrationPath, "analytics", "verify", "20171101000002_bar.sql"),
+		[]byte("SELECT 2"),
+		0777,
+	)
+
+	thirdMigration := []byte(dedent.Dedent(`
+		INSERT INTO public.count_foo (fuz) VALUES ('two');
+		-- //@UNDO
+		DELETE FROM public.count_foo WHERE fuz = 'two'
+	`))
+	os.Mkdir(filepath.Join(migrationPath, "analytics"), 0777)
+	ioutil.WriteFile(
+		filepath.Join(migrationPath, "analytics", "20171101000003_buz.sql"),
+		thirdMigration,
+		0777,
+	)
+	os.Mkdir(filepath.Join(migrationPath, "analytics", "verify"), 0777)
+	ioutil.WriteFile(filepath.Join(
+		migrationPath, "analytics", "verify", "20171101000003_buz.sql"),
+		[]byte("SELECT 2"),
+		0777,
+	)
+
+	db, err := driver.LoadDb(migrationPath, "development")
+	if err != nil {
+		t.Fatalf("Returned error loading database: %v", err)
+	}
+
+	if _, err := db.EnsureMigrationsChangelog(); err != nil {
+		t.Fatalf("Error during changelog creation: %v", err)
+	}
+
+	if err := db.ApplyUpMigrationsWithCount(2, false); err != nil {
+		t.Fatalf("Error during up migration: %v", err)
+	}
+
+	var rowCount int
+	verifyCount := dbConn.QueryRow("SELECT COUNT(*) FROM public.count_foo")
+	scanErr := verifyCount.Scan(&rowCount)
+	if rowCount != 2 {
+		t.Fatalf(
+			dedent.Dedent(`
+				Unexpected rowCount (%d). Incorrect up migration.
+				ScanErr: %v
+			`),
+			rowCount, scanErr,
+		)
+	}
+
 }
 
 func setupFolder(t *testing.T) (func(), string) {
@@ -124,9 +208,9 @@ func setupFolder(t *testing.T) (func(), string) {
 	cleanup := func() { os.RemoveAll(dir) }
 
 	os.Mkdir(filepath.Join(dir, "_environments"), 0777)
-	os.Mkdir(filepath.Join(dir, "_common"), 0777)
-	os.Mkdir(filepath.Join(dir, "_common", "verify"), 0777)
-	os.Mkdir(filepath.Join(dir, "_common", "prepare"), 0777)
+	os.Mkdir(filepath.Join(dir, "common"), 0777)
+	os.Mkdir(filepath.Join(dir, "common", "verify"), 0777)
+	os.Mkdir(filepath.Join(dir, "common", "prepare"), 0777)
 
 	defaultConfig := dedent.Dedent(`
 		db_type: postgres
