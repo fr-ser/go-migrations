@@ -119,7 +119,7 @@ func TestEnsureConsistentMigrations(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	err := EnsureConsistentMigrations(db)
+	err := EnsureConsistentMigrations(nil, nil)
 	if err != nil {
 		t.Fatalf("Received error during EnsureConsistentMigrations: %v", err)
 	}

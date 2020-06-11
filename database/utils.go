@@ -47,6 +47,6 @@ func ApplyBootstrapMigration(db *sql.DB, migrationsPath string) error {
 
 // EnsureConsistentMigrations checks if all applied migrations exist as local files
 // and if no local migration has been "skipped" (newer migrations applied)
-func EnsureConsistentMigrations(db *sql.DB) error {
+func EnsureConsistentMigrations(fileMigrations []FileMigration, appliedMigrations []AppliedMigration) error {
 	return fmt.Errorf("not implemented")
 }

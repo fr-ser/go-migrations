@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/lithammer/dedent"
 
 	"go-migrations/database"
@@ -64,18 +65,42 @@ func TestEnsureConsistentMigrations(t *testing.T) {
 	mock.ExpectClose()
 	sqlOpen = func(a, b string) (*sql.DB, error) { return db, err }
 
-	fakeCalled := false
-	commonEnsureConsistentMigrations = func(a *sql.DB) error {
-		fakeCalled = true
+	var receivedFileMigrations []database.FileMigration
+	var receivedAppliedMigrations []database.AppliedMigration
+	commonEnsureConsistentMigrations = func(
+		a []database.FileMigration, b []database.AppliedMigration,
+	) error {
+		receivedFileMigrations = a
+		receivedAppliedMigrations = b
 		return nil
+	}
+
+	expectedFileMigrations := []database.FileMigration{
+		{ID: "foo"}, {ID: "bar"},
+	}
+	commonGetFileMigrations = func(a string) ([]database.FileMigration, error) {
+		return expectedFileMigrations, nil
+	}
+	expectedAppliedMigrations := []database.AppliedMigration{
+		{ID: "foo"}, {ID: "bar"},
+	}
+	commonGetAppliedMigrations = func(a *sql.DB, b string) ([]database.AppliedMigration, error) {
+		return expectedAppliedMigrations, nil
 	}
 
 	pg := Postgres{}
 	pg.EnsureConsistentMigrations()
 
-	if !fakeCalled {
-		t.Errorf("Expected Bootstrap to be called")
+	if receivedAppliedMigrations == nil && receivedFileMigrations == nil {
+		t.Errorf("Did not call EnsureConsistentMigrations")
 	}
+	if diff := pretty.Compare(expectedFileMigrations, receivedFileMigrations); diff != "" {
+		t.Errorf("Did not pass right FileMigrations:\n%s", diff)
+	}
+	if diff := pretty.Compare(expectedAppliedMigrations, receivedAppliedMigrations); diff != "" {
+		t.Errorf("Did not pass right AppliedMigrations:\n%s", diff)
+	}
+
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}

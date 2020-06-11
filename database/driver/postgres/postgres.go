@@ -18,16 +18,18 @@ var (
 	sqlOpen                          = sql.Open
 	commonWaitForStart               = database.WaitForStart
 	commonBootstrap                  = database.ApplyBootstrapMigration
-	commonGetFileMigrations          = database.GetFileMigrations
 	commonEnsureConsistentMigrations = database.EnsureConsistentMigrations
+	commonGetFileMigrations          = database.GetFileMigrations
+	commonGetAppliedMigrations       = database.GetAppliedMigrations
 )
 
 var changelogTable = "public.migrations_changelog"
 
 // Postgres is a model to apply migrations against a PostgreSQL database
 type Postgres struct {
-	config        config.Config
-	connectionURL string
+	config         config.Config
+	connectionURL  string
+	fileMigrations []database.FileMigration
 }
 
 // WaitForStart tries to connect to the database within a timeout
@@ -74,9 +76,12 @@ func (pg *Postgres) applyUpMigration(db *sql.DB, migration database.FileMigratio
 
 // ApplyAllUpMigrations applies all up migrations
 func (pg *Postgres) ApplyAllUpMigrations() (err error) {
-	migrations, err := commonGetFileMigrations(pg.config.MigrationsPath)
-	if err != nil {
-		return err
+	if pg.fileMigrations == nil {
+		pg.fileMigrations, err = commonGetFileMigrations(pg.config.MigrationsPath)
+		if err != nil {
+			return err
+		}
+
 	}
 	db, err := sqlOpen("pgx", pg.connectionURL)
 	if err != nil {
@@ -84,7 +89,7 @@ func (pg *Postgres) ApplyAllUpMigrations() (err error) {
 	}
 	defer db.Close()
 
-	for _, migration := range migrations {
+	for _, migration := range pg.fileMigrations {
 		err = pg.applyUpMigration(db, migration)
 		if err != nil {
 			return err
@@ -149,7 +154,17 @@ func (pg *Postgres) EnsureConsistentMigrations() error {
 	}
 	defer db.Close()
 
-	return commonEnsureConsistentMigrations(db)
+	if pg.fileMigrations == nil {
+		pg.fileMigrations, err = commonGetFileMigrations(pg.config.MigrationsPath)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	appliedMigrations, err := commonGetAppliedMigrations(db, changelogTable)
+
+	return commonEnsureConsistentMigrations(pg.fileMigrations, appliedMigrations)
 }
 
 // Init initializes the database with the given configuration
