@@ -11,13 +11,15 @@ import (
 )
 
 var (
-	mockableMigrateUp         = ApplyUpSQL
-	mockableInsertToChangelog = InsertToChangelog
-	mockableApplyVerify       = ApplyVerify
+	mockableMigrateUp           = ApplyUpSQL
+	mockableMigrateDown         = ApplyDownSQL
+	mockableInsertToChangelog   = InsertToChangelog
+	mockableRemoveFromChangelog = RemoveFromChangelog
+	mockableApplyVerify         = ApplyVerify
 )
 
 // FilterUpMigrationsByText filters the migrations by filename. If more then one unapplied migration
-// remain an error is thrown
+// remains an error is thrown
 func FilterUpMigrationsByText(filter string, fileMigrations []FileMigration,
 	appliedMigrations []AppliedMigration) (filteredMigration FileMigration, err error,
 ) {
@@ -30,6 +32,44 @@ func FilterUpMigrationsByText(filter string, fileMigrations []FileMigration,
 	for _, mig := range fileMigrations {
 		if strings.Contains(mig.Filename, filter) && !appliedIDLookup[mig.ID] {
 			foundMigrations = append(foundMigrations, mig)
+		}
+	}
+
+	if len(foundMigrations) == 0 {
+		return filteredMigration, fmt.Errorf("Found no migration matching the filter: %s", filter)
+	} else if len(foundMigrations) > 1 {
+		matchedNames := ""
+		for _, mig := range foundMigrations {
+			matchedNames = fmt.Sprintf("%s\n%s/%s", matchedNames, mig.Application, mig.Filename)
+		}
+		return filteredMigration, fmt.Errorf(
+			"Found multiple matches for the filter: %s %s", filter, matchedNames,
+		)
+	}
+
+	filteredMigration = foundMigrations[0]
+
+	return filteredMigration, nil
+}
+
+// FilterDownMigrationsByText filters the migrations by filename. If more then one applied migration
+// remains an error is thrown
+func FilterDownMigrationsByText(filter string, fileMigrations []FileMigration,
+	appliedMigrations []AppliedMigration) (filteredMigration FileMigration, err error,
+) {
+	fileIDLookup := map[string]int{}
+	for idx, mig := range fileMigrations {
+		fileIDLookup[mig.ID] = idx
+	}
+
+	foundMigrations := []FileMigration{}
+	for _, mig := range appliedMigrations {
+		lookupText := fmt.Sprintf("%s_%s.sql", mig.ID, mig.Name)
+		if strings.Contains(lookupText, filter) {
+			idx, exists := fileIDLookup[mig.ID]
+			if exists {
+				foundMigrations = append(foundMigrations, fileMigrations[idx])
+			}
 		}
 	}
 
@@ -79,9 +119,56 @@ func FilterUpMigrationsByCount(count uint, all bool, fileMigrations []FileMigrat
 	return migrations, nil
 }
 
-// ApplyUpMigration applies the up migration in a transaction
+// FilterDownMigrationsByCount filters the migrations for the next n applied migrations.
+// This relies on a "consistent changelog" and return an error if no migrations are left to remvoe
+// the migrations are returned in descending ID order
+func FilterDownMigrationsByCount(count uint, all bool, fileMigrations []FileMigration,
+	appliedMigrations []AppliedMigration) (migrations []FileMigration, err error,
+) {
+	appliedCount := len(appliedMigrations)
+	if appliedCount == 0 {
+		return migrations, fmt.Errorf("No migrations left to remove")
+	}
+
+	if appliedCount < int(count) {
+		log.Warningf(
+			dedent.Dedent(`
+				The received count (%d) is bigger than the applied migrations.
+				All migrations will be removed.
+			`), count,
+		)
+		all = true
+	}
+
+	var lastIdx int
+	if all {
+		lastIdx = 0
+	} else {
+		lastIdx = appliedCount - int(count)
+	}
+
+	for idx := appliedCount - 1; idx >= lastIdx; idx-- {
+		migrations = append(migrations, fileMigrations[idx])
+	}
+
+	return migrations, nil
+}
+
+// ApplyDownMigration applies the down migration in a transaction and updates the changelog
+func ApplyDownMigration(db *sql.DB, migration FileMigration, changelogTable string) error {
+	if err := mockableMigrateDown(db, migration); err != nil {
+		return err
+	}
+
+	if err := mockableRemoveFromChangelog(db, migration, changelogTable); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ApplyUpMigration applies the up migration in a transaction and updates the changelog
 // After the migration a verify script is executed and rolled back in a separate transaction.
-// If the verify script fails the downmigration is executed (also in a transaction)
 func ApplyUpMigration(db *sql.DB, migration FileMigration, changelogTable string) error {
 	if err := mockableMigrateUp(db, migration); err != nil {
 		return err
@@ -122,13 +209,47 @@ func ApplyUpSQL(db *sql.DB, migration FileMigration) error {
 
 	err = upTx.Commit()
 	if err != nil {
-		return fmt.Errorf("Error during commit of %s: %s", migration.Filename, err)
+		return fmt.Errorf(
+			"Error during commit of up migration of %s: %s",
+			migration.Filename, err,
+		)
+	}
+	return nil
+}
+
+// ApplyDownSQL is an internal helper to apply the down migration in a transaction
+// it does not perform anything else (like changelog update)
+func ApplyDownSQL(db *sql.DB, migration FileMigration) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("Error opening transaction: %v", err)
+	}
+
+	_, err = tx.Exec(migration.DownSQL)
+	if err != nil {
+		rollbackError := tx.Rollback()
+		if rollbackError != nil {
+			return fmt.Errorf(
+				"Error during down migration of %s: %s \n and rollback error: %s",
+				migration.Filename,
+				err,
+				rollbackError,
+			)
+		}
+		return fmt.Errorf("Error during down migration of %s: %s", migration.Filename, err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf(
+			"Error during commit of down migration of %s: %s",
+			migration.Filename, err,
+		)
 	}
 	return nil
 }
 
 // InsertToChangelog is an internal helper to insert the migration into the changelog
-// The table name is passed to allow specifying database specific paths and schemas
 func InsertToChangelog(db *sql.DB, migration FileMigration, changelogTable string) error {
 	_, err := db.Exec(fmt.Sprintf(
 		`INSERT INTO %s (id, name, applied_at) VALUES ('%s', '%s', now())`,
@@ -138,9 +259,20 @@ func InsertToChangelog(db *sql.DB, migration FileMigration, changelogTable strin
 	))
 	if err != nil {
 		return fmt.Errorf(
-			"Could not update migration changelog for %s: %v",
-			migration.Filename,
-			err,
+			"Could not add the migration %s from the changelog: %v",
+			migration.Filename, err,
+		)
+	}
+	return nil
+}
+
+// RemoveFromChangelog is an internal helper to remove the migration from the changelog
+func RemoveFromChangelog(db *sql.DB, migration FileMigration, changelogTable string) error {
+	_, err := db.Exec(fmt.Sprintf(`DELETE FROM %s WHERE id = '%s'`, changelogTable, migration.ID))
+	if err != nil {
+		return fmt.Errorf(
+			"Could not remove the migration %s from the changelog: %v",
+			migration.Filename, err,
 		)
 	}
 	return nil

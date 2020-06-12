@@ -9,7 +9,7 @@ import (
 	"go-migrations/commands"
 )
 
-var upFlags = []cli.Flag{
+var downFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name: "count", Aliases: []string{"c"},
 		Usage: "number of migrations to apply (default action is to apply one)",
@@ -32,11 +32,11 @@ var upFlags = []cli.Flag{
 	},
 }
 
-// migrateUpCommand executes up migrations
-var migrateUpCommand = &cli.Command{
-	Name:   "up",
-	Usage:  "executes up migrations",
-	Flags:  upFlags,
+// migrateDownCommand executes down migrations
+var migrateDownCommand = &cli.Command{
+	Name:   "down",
+	Usage:  "executes down migrations",
+	Flags:  downFlags,
 	Before: commands.NoArguments,
 	Action: func(c *cli.Context) error {
 
@@ -56,14 +56,14 @@ var migrateUpCommand = &cli.Command{
 
 		created, err := db.EnsureMigrationsChangelog()
 		if created {
-			log.Info("Created changelog table")
+			log.Warning("Created changelog table")
 		}
 		if err != nil {
 			return err
 		}
 
 		if c.String("only") != "" {
-			if err := db.ApplySpecificUpMigration(c.String("only")); err != nil {
+			if err := db.ApplySpecificDownMigration(c.String("only")); err != nil {
 				return err
 			}
 		} else {
@@ -75,11 +75,11 @@ var migrateUpCommand = &cli.Command{
 			if upCount == 0 && !c.Bool("all") {
 				upCount = 1
 			}
-			if err := db.ApplyUpMigrationsWithCount(upCount, c.Bool("all")); err != nil {
+			if err := db.ApplyDownMigrationsWithCount(upCount, c.Bool("all")); err != nil {
 				return err
 			}
 		}
-		log.Info("Up migration completed")
+		log.Info("Down migration completed")
 		return nil
 	},
 }

@@ -13,8 +13,8 @@ var (
 	loadConfig = config.LoadConfig
 )
 
-// LoadDb loads a configuration and initializes a database on top of it
-func LoadDb(migrationsPath, environment string) (database.Database, error) {
+// LoadDB loads a configuration and initializes a database on top of it
+func LoadDB(migrationsPath, environment string) (database.Database, error) {
 	configPath := fmt.Sprintf("%s/_environments/%s.yaml", migrationsPath, environment)
 	config, err := loadConfig(configPath, migrationsPath, environment)
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 	"go-migrations/database"
 )
 
-type migrateUpCallArg struct {
+type migrateCallArgs struct {
 	migration      database.FileMigration
 	changelogTable string
 }
@@ -20,19 +20,19 @@ func TestApplyAllUpMigrations(t *testing.T) {
 	defer resetMockVariables()
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	mockableSQLOpen = func(a, b string) (*sql.DB, error) { return db, err }
+	mock.ExpectClose()
 
 	mockableGetFileMigrations = func(a string) ([]database.FileMigration, error) {
 		return []database.FileMigration{{ID: "1"}, {ID: "2"}}, nil
 	}
 
-	migrateUpCalls := []migrateUpCallArg{}
+	migrateUpCalls := []migrateCallArgs{}
 	mockableApplyUpMigration = func(a *sql.DB, b database.FileMigration, c string) error {
-		migrateUpCalls = append(migrateUpCalls, migrateUpCallArg{migration: b, changelogTable: c})
+		migrateUpCalls = append(migrateUpCalls, migrateCallArgs{migration: b, changelogTable: c})
 		return nil
 	}
 
-	mock.ExpectClose()
-	expectedArgs := []migrateUpCallArg{
+	expectedArgs := []migrateCallArgs{
 		{migration: database.FileMigration{ID: "1"}, changelogTable: changelogTable},
 		{migration: database.FileMigration{ID: "2"}, changelogTable: changelogTable},
 	}
@@ -51,17 +51,84 @@ func TestApplyAllUpMigrations(t *testing.T) {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
+
+func TestApplyDownMigrationsWithCount(t *testing.T) {
+	defer resetMockVariables()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	mockableSQLOpen = func(a, b string) (*sql.DB, error) { return db, err }
+	mock.ExpectClose()
+
+	receivedMigrateArgs := []migrateCallArgs{}
+	mockableApplyDownMigration = func(a *sql.DB, b database.FileMigration, c string) error {
+		receivedMigrateArgs = append(
+			receivedMigrateArgs,
+			migrateCallArgs{migration: b, changelogTable: c},
+		)
+		return nil
+	}
+
+	type filterByCountArgs struct {
+		count             uint
+		all               bool
+		fileMigrations    []database.FileMigration
+		appliedMigrations []database.AppliedMigration
+	}
+
+	var receivedFilterByCountArgs filterByCountArgs
+	mockableFilterDownMigrationsByCount = func(a uint, b bool, c []database.FileMigration,
+		d []database.AppliedMigration) ([]database.FileMigration, error) {
+		receivedFilterByCountArgs = filterByCountArgs{
+			count: a, all: b, fileMigrations: c, appliedMigrations: d,
+		}
+		return []database.FileMigration{{ID: "2"}, {ID: "3"}}, nil
+	}
+
+	fileMigrations := []database.FileMigration{{ID: "1"}, {ID: "2"}, {ID: "3"}}
+	appliedMigrations := []database.AppliedMigration{{ID: "1"}}
+
+	expectedMigrateArgs := []migrateCallArgs{
+		{migration: database.FileMigration{ID: "2"}, changelogTable: changelogTable},
+		{migration: database.FileMigration{ID: "3"}, changelogTable: changelogTable},
+	}
+	expectedFilterByCountArgs := filterByCountArgs{
+		count: 2, all: false, fileMigrations: fileMigrations,
+		appliedMigrations: appliedMigrations,
+	}
+
+	pg := Postgres{}
+	pg.fileMigrations = fileMigrations
+	pg.appliedMigrations = appliedMigrations
+	err = pg.ApplyDownMigrationsWithCount(
+		expectedFilterByCountArgs.count, expectedFilterByCountArgs.all,
+	)
+	if err != nil {
+		t.Errorf("Expected no error, but got: %s", err)
+	}
+
+	if diff := pretty.Compare(expectedFilterByCountArgs, receivedFilterByCountArgs); diff != "" {
+		t.Errorf("Did not pass right arguments to FilterByCount:\n%s", diff)
+	}
+
+	if diff := pretty.Compare(expectedMigrateArgs, receivedMigrateArgs); diff != "" {
+		t.Errorf("Did not pass right FileMigrations to migrateUp:\n%s", diff)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
 func TestApplyUpMigrationsWithCount(t *testing.T) {
 	defer resetMockVariables()
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	mock.ExpectClose()
 	mockableSQLOpen = func(a, b string) (*sql.DB, error) { return db, err }
+	mock.ExpectClose()
 
-	receivedMigrateArgs := []migrateUpCallArg{}
+	receivedMigrateArgs := []migrateCallArgs{}
 	mockableApplyUpMigration = func(a *sql.DB, b database.FileMigration, c string) error {
 		receivedMigrateArgs = append(
 			receivedMigrateArgs,
-			migrateUpCallArg{migration: b, changelogTable: c},
+			migrateCallArgs{migration: b, changelogTable: c},
 		)
 		return nil
 	}
@@ -85,7 +152,7 @@ func TestApplyUpMigrationsWithCount(t *testing.T) {
 	fileMigrations := []database.FileMigration{{ID: "1"}, {ID: "2"}, {ID: "3"}}
 	appliedMigrations := []database.AppliedMigration{{ID: "1"}}
 
-	expectedMigrateArgs := []migrateUpCallArg{
+	expectedMigrateArgs := []migrateCallArgs{
 		{migration: database.FileMigration{ID: "2"}, changelogTable: changelogTable},
 		{migration: database.FileMigration{ID: "3"}, changelogTable: changelogTable},
 	}
@@ -117,22 +184,54 @@ func TestApplyUpMigrationsWithCount(t *testing.T) {
 	}
 }
 
+func TestApplyDownMigrationsWithCountError(t *testing.T) {
+	defer resetMockVariables()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	mockableSQLOpen = func(a, b string) (*sql.DB, error) { return db, err }
+	mock.ExpectClose()
+
+	var migrateCalled bool
+	mockableApplyUpMigration = func(a *sql.DB, b database.FileMigration, c string) error {
+		migrateCalled = true
+		return nil
+	}
+	mockableFilterDownMigrationsByCount = func(a uint, b bool, c []database.FileMigration,
+		d []database.AppliedMigration) ([]database.FileMigration, error) {
+		return []database.FileMigration{}, fmt.Errorf("test")
+	}
+
+	pg := Postgres{}
+	pg.fileMigrations = []database.FileMigration{{ID: "1"}}
+	pg.appliedMigrations = []database.AppliedMigration{{ID: "1"}}
+	err = pg.ApplyDownMigrationsWithCount(3, false)
+	if err == nil {
+		t.Errorf("Expected error, but got nothing")
+	}
+
+	if migrateCalled {
+		t.Errorf("Did not expect to call down migrations, but they were called")
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
 func TestApplyUpMigrationsWithCountError(t *testing.T) {
 	defer resetMockVariables()
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	mockableSQLOpen = func(a, b string) (*sql.DB, error) { return db, err }
+	mock.ExpectClose()
 
-	var migrateUpCalled bool
+	var migrateCalled bool
 	mockableApplyUpMigration = func(a *sql.DB, b database.FileMigration, c string) error {
-		migrateUpCalled = true
+		migrateCalled = true
 		return nil
 	}
 	mockableFilterUpMigrationsByCount = func(a uint, b bool, c []database.FileMigration,
 		d []database.AppliedMigration) ([]database.FileMigration, error) {
 		return []database.FileMigration{}, fmt.Errorf("test")
 	}
-
-	mock.ExpectClose()
 
 	pg := Postgres{}
 	pg.fileMigrations = []database.FileMigration{{ID: "1"}}
@@ -142,7 +241,7 @@ func TestApplyUpMigrationsWithCountError(t *testing.T) {
 		t.Errorf("Expected error, but got nothing")
 	}
 
-	if migrateUpCalled {
+	if migrateCalled {
 		t.Errorf("Did not expect to call up migrations, but they were called")
 	}
 
@@ -154,22 +253,22 @@ func TestApplyUpMigrationsWithCountError(t *testing.T) {
 func TestApplySpecificUpMigration(t *testing.T) {
 	defer resetMockVariables()
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	mock.ExpectClose()
 	mockableSQLOpen = func(a, b string) (*sql.DB, error) { return db, err }
+	mock.ExpectClose()
 
-	var migrateUpMigration database.FileMigration
-	var migrateUpChangelog string
+	var migrateMigration database.FileMigration
+	var migrateChangelog string
 	mockableApplyUpMigration = func(a *sql.DB, b database.FileMigration, c string) error {
-		migrateUpMigration = b
-		migrateUpChangelog = c
+		migrateMigration = b
+		migrateChangelog = c
 		return nil
 	}
 
 	expectedMigration := database.FileMigration{ID: "expected"}
-	var FilterUpMigrationsByTextFilter string
+	var FilterMigrationsByTextFilter string
 	mockableFilterUpMigrationsByText = func(a string, b []database.FileMigration,
 		c []database.AppliedMigration) (database.FileMigration, error) {
-		FilterUpMigrationsByTextFilter = a
+		FilterMigrationsByTextFilter = a
 		return expectedMigration, nil
 	}
 
@@ -181,16 +280,64 @@ func TestApplySpecificUpMigration(t *testing.T) {
 		t.Errorf("Expected no error, but got %v", err)
 	}
 
-	if migrateUpChangelog != changelogTable {
-		t.Errorf("Expected changelogtable '%s', but got %s", changelogTable, migrateUpChangelog)
+	if migrateChangelog != changelogTable {
+		t.Errorf("Expected changelogtable '%s', but got %s", changelogTable, migrateChangelog)
 	}
-	if migrateUpMigration != expectedMigration {
-		t.Errorf("Expected migration '%v', but got %v", expectedMigration, migrateUpMigration)
+	if migrateMigration != expectedMigration {
+		t.Errorf("Expected migration '%v', but got %v", expectedMigration, migrateMigration)
 	}
-	if FilterUpMigrationsByTextFilter != "sth" {
+	if FilterMigrationsByTextFilter != "sth" {
 		t.Errorf(
 			"Expected FilterUpMigration to be called with 'sht', but got %s",
-			FilterUpMigrationsByTextFilter,
+			FilterMigrationsByTextFilter,
+		)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestApplySpecificDownMigration(t *testing.T) {
+	defer resetMockVariables()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	mockableSQLOpen = func(a, b string) (*sql.DB, error) { return db, err }
+	mock.ExpectClose()
+
+	var migrateMigration database.FileMigration
+	var migrateChangelog string
+	mockableApplyDownMigration = func(a *sql.DB, b database.FileMigration, c string) error {
+		migrateMigration = b
+		migrateChangelog = c
+		return nil
+	}
+
+	expectedMigration := database.FileMigration{ID: "expected"}
+	var FilterMigrationsByTextFilter string
+	mockableFilterDownMigrationsByText = func(a string, b []database.FileMigration,
+		c []database.AppliedMigration) (database.FileMigration, error) {
+		FilterMigrationsByTextFilter = a
+		return expectedMigration, nil
+	}
+
+	pg := Postgres{}
+	pg.fileMigrations = []database.FileMigration{}
+	pg.appliedMigrations = []database.AppliedMigration{}
+	err = pg.ApplySpecificDownMigration("sth")
+	if err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
+
+	if migrateChangelog != changelogTable {
+		t.Errorf("Expected changelogtable '%s', but got %s", changelogTable, migrateChangelog)
+	}
+	if migrateMigration != expectedMigration {
+		t.Errorf("Expected migration '%v', but got %v", expectedMigration, migrateMigration)
+	}
+	if FilterMigrationsByTextFilter != "sth" {
+		t.Errorf(
+			"Expected FilterDownMigration to be called with 'sht', but got %s",
+			FilterMigrationsByTextFilter,
 		)
 	}
 
@@ -202,12 +349,12 @@ func TestApplySpecificUpMigration(t *testing.T) {
 func TestApplySpecificUpMigrationError(t *testing.T) {
 	defer resetMockVariables()
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	mock.ExpectClose()
 	mockableSQLOpen = func(a, b string) (*sql.DB, error) { return db, err }
+	mock.ExpectClose()
 
-	var migrateUpCalled bool
+	var migrateCalled bool
 	mockableApplyUpMigration = func(a *sql.DB, b database.FileMigration, c string) error {
-		migrateUpCalled = true
+		migrateCalled = true
 		return nil
 	}
 
@@ -224,8 +371,42 @@ func TestApplySpecificUpMigrationError(t *testing.T) {
 		t.Errorf("Expected error, but got none")
 	}
 
-	if migrateUpCalled {
+	if migrateCalled {
 		t.Errorf("Expected migrateUp not to be called, but it was")
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestApplySpecificDownMigrationError(t *testing.T) {
+	defer resetMockVariables()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	mockableSQLOpen = func(a, b string) (*sql.DB, error) { return db, err }
+	mock.ExpectClose()
+
+	var migrateCalled bool
+	mockableApplyDownMigration = func(a *sql.DB, b database.FileMigration, c string) error {
+		migrateCalled = true
+		return nil
+	}
+
+	mockableFilterDownMigrationsByText = func(a string, b []database.FileMigration,
+		c []database.AppliedMigration) (database.FileMigration, error) {
+		return database.FileMigration{}, fmt.Errorf("test")
+	}
+
+	pg := Postgres{}
+	pg.fileMigrations = []database.FileMigration{}
+	pg.appliedMigrations = []database.AppliedMigration{}
+	err = pg.ApplySpecificDownMigration("sth")
+	if err == nil {
+		t.Errorf("Expected error, but got none")
+	}
+
+	if migrateCalled {
+		t.Errorf("Expected migrateDown not to be called, but it was")
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {

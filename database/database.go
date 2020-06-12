@@ -13,12 +13,21 @@ type Database interface {
 	Bootstrap() error
 	// ApplyAllUpMigrations applies all up migrations
 	ApplyAllUpMigrations() error
+
 	// ApplySpecificUpMigration applies one specific up migration based on a string search
 	// of the filename
 	ApplySpecificUpMigration(filter string) error
 	// ApplyUpMigrationsWithCount applies a number of up migration starting from the last
 	// by providing the "all" flag all remaining up migrations are applied
 	ApplyUpMigrationsWithCount(count uint, all bool) error
+	// ApplySpecificDownMigration applies one specific down migration based on a string search
+	// of the filename
+	ApplySpecificDownMigration(filter string) error
+	// ApplyDownMigrationsWithCount applies a number of down migration starting from the last
+	// applied
+	// by providing the "all" flag all remaining down migrations, which have been rolled out,
+	//  are applied
+	ApplyDownMigrationsWithCount(count uint, all bool) error
 
 	// EnsureMigrationsChangelog checks if a changelog table already exists and creates it if
 	// necessary

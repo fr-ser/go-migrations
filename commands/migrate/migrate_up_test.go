@@ -1,39 +1,23 @@
 package migrate
 
 import (
-	"io/ioutil"
-	"log"
-	"os"
 	"testing"
-
-	"github.com/urfave/cli/v2"
 
 	"go-migrations/database"
 	"go-migrations/internal"
 )
 
-var app = cli.NewApp()
+var dbLoadArgsUp []string
+var fakeDbUp internal.FakeDbWithSpy
+var fakeDbLoadedUp bool
 
-var dbLoadArgs []string
-var fakeDb internal.FakeDbWithSpy
-var fakeDbLoaded bool
-
-func TestMain(m *testing.M) {
-	app.Commands = []*cli.Command{
-		MigrateCommands,
-	}
-	log.SetOutput(ioutil.Discard)
-	os.Exit(m.Run())
+func fakeLoadWithSpyUp(migrationsPath, environment string) (database.Database, error) {
+	dbLoadArgsUp = []string{migrationsPath, environment}
+	fakeDbUp = internal.FakeDbWithSpy{}
+	return &fakeDbUp, nil
 }
-
-func fakeLoadWithSpy(migrationsPath, environment string) (database.Database, error) {
-	dbLoadArgs = []string{migrationsPath, environment}
-	fakeDb = internal.FakeDbWithSpy{}
-	return &fakeDb, nil
-}
-
 func TestMigrateUpDefaults(t *testing.T) {
-	dbLoadDb = fakeLoadWithSpy
+	mockableLoadDB = fakeLoadWithSpyUp
 
 	args := []string{"sth.exe", "migrate", "up"}
 	if err := app.Run(args); err != nil {
@@ -41,19 +25,19 @@ func TestMigrateUpDefaults(t *testing.T) {
 	}
 
 	expected := []string{"./migrations/zlab", "development"}
-	if !internal.StrSliceEqual(dbLoadArgs, expected) {
-		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
+	if !internal.StrSliceEqual(dbLoadArgsUp, expected) {
+		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgsUp)
 	}
 
-	fakeDb.AssertWaitForStartCalled(t, true)
-	fakeDb.AssertEnsureMigrationsChangelogCalled(t, true)
-	fakeDb.AssertEnsureConsistentMigrationsCalled(t, true)
-	fakeDb.AssertApplyUpMigrationsWithCountCalledWith(t, 1, false)
-	fakeDb.AssertApplySpecificUpMigrationCalled(t, false)
+	fakeDbUp.AssertWaitForStartCalled(t, true)
+	fakeDbUp.AssertEnsureMigrationsChangelogCalled(t, true)
+	fakeDbUp.AssertEnsureConsistentMigrationsCalled(t, true)
+	fakeDbUp.AssertApplyUpMigrationsWithCountCalledWith(t, 1, false)
+	fakeDbUp.AssertApplySpecificUpMigrationCalled(t, false)
 }
 
 func TestMigrateUpWithCount(t *testing.T) {
-	dbLoadDb = fakeLoadWithSpy
+	mockableLoadDB = fakeLoadWithSpyUp
 
 	args := []string{"sth.exe", "migrate", "up", "--count", "2"}
 	if err := app.Run(args); err != nil {
@@ -61,20 +45,20 @@ func TestMigrateUpWithCount(t *testing.T) {
 	}
 
 	expected := []string{"./migrations/zlab", "development"}
-	if !internal.StrSliceEqual(dbLoadArgs, expected) {
-		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
+	if !internal.StrSliceEqual(dbLoadArgsUp, expected) {
+		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgsUp)
 	}
 
-	fakeDb.AssertWaitForStartCalled(t, true)
-	fakeDb.AssertEnsureMigrationsChangelogCalled(t, true)
-	fakeDb.AssertEnsureConsistentMigrationsCalled(t, true)
-	fakeDb.AssertApplyUpMigrationsWithCountCalledWith(t, 2, false)
-	fakeDb.AssertApplySpecificUpMigrationCalled(t, false)
+	fakeDbUp.AssertWaitForStartCalled(t, true)
+	fakeDbUp.AssertEnsureMigrationsChangelogCalled(t, true)
+	fakeDbUp.AssertEnsureConsistentMigrationsCalled(t, true)
+	fakeDbUp.AssertApplyUpMigrationsWithCountCalledWith(t, 2, false)
+	fakeDbUp.AssertApplySpecificUpMigrationCalled(t, false)
 
 }
 
 func TestMigrateUpWithAll(t *testing.T) {
-	dbLoadDb = fakeLoadWithSpy
+	mockableLoadDB = fakeLoadWithSpyUp
 
 	args := []string{"sth.exe", "migrate", "up", "--all"}
 	if err := app.Run(args); err != nil {
@@ -82,20 +66,20 @@ func TestMigrateUpWithAll(t *testing.T) {
 	}
 
 	expected := []string{"./migrations/zlab", "development"}
-	if !internal.StrSliceEqual(dbLoadArgs, expected) {
-		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
+	if !internal.StrSliceEqual(dbLoadArgsUp, expected) {
+		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgsUp)
 	}
 
-	fakeDb.AssertWaitForStartCalled(t, true)
-	fakeDb.AssertEnsureMigrationsChangelogCalled(t, true)
-	fakeDb.AssertEnsureConsistentMigrationsCalled(t, true)
-	fakeDb.AssertApplyUpMigrationsWithCountCalledWith(t, 0, true)
-	fakeDb.AssertApplySpecificUpMigrationCalled(t, false)
+	fakeDbUp.AssertWaitForStartCalled(t, true)
+	fakeDbUp.AssertEnsureMigrationsChangelogCalled(t, true)
+	fakeDbUp.AssertEnsureConsistentMigrationsCalled(t, true)
+	fakeDbUp.AssertApplyUpMigrationsWithCountCalledWith(t, 0, true)
+	fakeDbUp.AssertApplySpecificUpMigrationCalled(t, false)
 
 }
 
 func TestMigrateUpWithOnly(t *testing.T) {
-	dbLoadDb = fakeLoadWithSpy
+	mockableLoadDB = fakeLoadWithSpyUp
 
 	args := []string{"sth.exe", "migrate", "up", "--only", "sth"}
 	if err := app.Run(args); err != nil {
@@ -103,20 +87,20 @@ func TestMigrateUpWithOnly(t *testing.T) {
 	}
 
 	expected := []string{"./migrations/zlab", "development"}
-	if !internal.StrSliceEqual(dbLoadArgs, expected) {
-		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgs)
+	if !internal.StrSliceEqual(dbLoadArgsUp, expected) {
+		t.Errorf("Expected to load db with '%v', but got %s", expected, dbLoadArgsUp)
 	}
 
-	fakeDb.AssertWaitForStartCalled(t, true)
-	fakeDb.AssertEnsureMigrationsChangelogCalled(t, true)
-	fakeDb.AssertApplySpecificUpMigrationCalledWith(t, "sth")
-	fakeDb.AssertApplyUpMigrationsWithCountCalled(t, false)
-	fakeDb.AssertEnsureConsistentMigrationsCalled(t, false)
+	fakeDbUp.AssertWaitForStartCalled(t, true)
+	fakeDbUp.AssertEnsureMigrationsChangelogCalled(t, true)
+	fakeDbUp.AssertApplySpecificUpMigrationCalledWith(t, "sth")
+	fakeDbUp.AssertApplyUpMigrationsWithCountCalled(t, false)
+	fakeDbUp.AssertEnsureConsistentMigrationsCalled(t, false)
 }
 
 func TestMigrateUpErrorWithMultipleParams(t *testing.T) {
-	fakeDbLoaded = false
-	dbLoadDb = fakeLoadWithSpy
+	fakeDbLoadedUp = false
+	mockableLoadDB = fakeLoadWithSpyUp
 
 	var invalidArgs = [][]string{
 		{"sth.exe", "migrate", "up", "--only", "sth", "--all"},
@@ -132,7 +116,7 @@ func TestMigrateUpErrorWithMultipleParams(t *testing.T) {
 		if err := app.Run(args); err == nil {
 			t.Errorf("Got no error for wrong parameters: %v", args)
 		}
-		if fakeDbLoaded {
+		if fakeDbLoadedUp {
 			t.Errorf("Loaded the database even though it shouldn't")
 		}
 

@@ -15,8 +15,8 @@ import (
 
 // variables to allow mocking for tests
 var (
-	runWithOutput = utils.RunWithOutput
-	dbLoadDb      = driver.LoadDb
+	runWithOutput  = utils.RunWithOutput
+	mockableLoadDB = driver.LoadDB
 )
 
 var flags = []cli.Flag{
@@ -63,7 +63,7 @@ var StartCommand = &cli.Command{
 			return fmt.Errorf("Could not start database - Err: %v", err)
 		}
 
-		db, err := dbLoadDb(c.String("migrations-path"), c.String("environment"))
+		db, err := mockableLoadDB(c.String("migrations-path"), c.String("environment"))
 		if err != nil {
 			return err
 		}

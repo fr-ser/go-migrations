@@ -16,7 +16,7 @@ func fakeLoadConfigWithSpy(configPath, migrationsPath, environment string) (conf
 func TestLoadDb(t *testing.T) {
 	loadConfig = fakeLoadConfigWithSpy
 
-	db, err := LoadDb("./mig_path", "my_env")
+	db, err := LoadDB("./mig_path", "my_env")
 	if err != nil {
 		t.Errorf("Returned error: %v", err)
 	}

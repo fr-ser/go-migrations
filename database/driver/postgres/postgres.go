@@ -15,15 +15,18 @@ import (
 )
 
 var (
-	mockableSQLOpen                    = sql.Open
-	mockableWaitForStart               = database.WaitForStart
-	mockableBootstrap                  = database.ApplyBootstrapMigration
-	mockableEnsureConsistentMigrations = database.EnsureConsistentMigrations
-	mockableGetFileMigrations          = database.GetFileMigrations
-	mockableGetAppliedMigrations       = database.GetAppliedMigrations
-	mockableApplyUpMigration           = database.ApplyUpMigration
-	mockableFilterUpMigrationsByText   = database.FilterUpMigrationsByText
-	mockableFilterUpMigrationsByCount  = database.FilterUpMigrationsByCount
+	mockableSQLOpen                     = sql.Open
+	mockableWaitForStart                = database.WaitForStart
+	mockableBootstrap                   = database.ApplyBootstrapMigration
+	mockableEnsureConsistentMigrations  = database.EnsureConsistentMigrations
+	mockableGetFileMigrations           = database.GetFileMigrations
+	mockableGetAppliedMigrations        = database.GetAppliedMigrations
+	mockableApplyUpMigration            = database.ApplyUpMigration
+	mockableApplyDownMigration          = database.ApplyDownMigration
+	mockableFilterUpMigrationsByText    = database.FilterUpMigrationsByText
+	mockableFilterDownMigrationsByText  = database.FilterDownMigrationsByText
+	mockableFilterUpMigrationsByCount   = database.FilterUpMigrationsByCount
+	mockableFilterDownMigrationsByCount = database.FilterDownMigrationsByCount
 )
 
 var changelogTable = "public.migrations_changelog"
@@ -119,6 +122,42 @@ func (pg *Postgres) ApplySpecificUpMigration(filter string) (err error) {
 	return nil
 }
 
+// ApplySpecificDownMigration applies one up migration by a filter
+func (pg *Postgres) ApplySpecificDownMigration(filter string) (err error) {
+	if pg.fileMigrations == nil {
+		pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	db, err := mockableSQLOpen("pgx", pg.connectionURL)
+	if err != nil {
+		return fmt.Errorf("Error opening database: %v", err)
+	}
+	defer db.Close()
+
+	if pg.appliedMigrations == nil {
+		pg.appliedMigrations, err = mockableGetAppliedMigrations(db, changelogTable)
+		if err != nil {
+			return err
+		}
+	}
+
+	migration, err := mockableFilterDownMigrationsByText(filter, pg.fileMigrations, pg.appliedMigrations)
+	if err != nil {
+		return err
+	}
+
+	err = mockableApplyDownMigration(db, migration, changelogTable)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ApplyUpMigrationsWithCount applies up migration by a count
 func (pg *Postgres) ApplyUpMigrationsWithCount(count uint, all bool) (err error) {
 	if pg.fileMigrations == nil {
@@ -151,6 +190,45 @@ func (pg *Postgres) ApplyUpMigrationsWithCount(count uint, all bool) (err error)
 
 	for _, migration := range migrations {
 		err = mockableApplyUpMigration(db, migration, changelogTable)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ApplyDownMigrationsWithCount applies down migration by a count
+func (pg *Postgres) ApplyDownMigrationsWithCount(count uint, all bool) (err error) {
+	if pg.fileMigrations == nil {
+		pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	db, err := mockableSQLOpen("pgx", pg.connectionURL)
+	if err != nil {
+		return fmt.Errorf("Error opening database: %v", err)
+	}
+	defer db.Close()
+
+	if pg.appliedMigrations == nil {
+		pg.appliedMigrations, err = mockableGetAppliedMigrations(db, changelogTable)
+		if err != nil {
+			return err
+		}
+	}
+
+	migrations, err := mockableFilterDownMigrationsByCount(
+		count, all, pg.fileMigrations, pg.appliedMigrations,
+	)
+	if err != nil {
+		return err
+	}
+
+	for _, migration := range migrations {
+		err = mockableApplyDownMigration(db, migration, changelogTable)
 		if err != nil {
 			return err
 		}

@@ -36,7 +36,7 @@ func TestApplyBootstrap(t *testing.T) {
 	)
 	ioutil.WriteFile(filepath.Join(migrationPath, "bootstrap.sql"), bootstrapSQL, 0777)
 
-	db, err := driver.LoadDb(migrationPath, "development")
+	db, err := driver.LoadDB(migrationPath, "development")
 	if err != nil {
 		t.Fatalf("Returned error loading database: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestApplyAllUpMigrations(t *testing.T) {
 		0777,
 	)
 
-	db, err := driver.LoadDb(migrationPath, "development")
+	db, err := driver.LoadDB(migrationPath, "development")
 	if err != nil {
 		t.Fatalf("Returned error loading database: %v", err)
 	}
@@ -174,7 +174,7 @@ func TestApplyUpMigrationsWithCount(t *testing.T) {
 		0777,
 	)
 
-	db, err := driver.LoadDb(migrationPath, "development")
+	db, err := driver.LoadDB(migrationPath, "development")
 	if err != nil {
 		t.Fatalf("Returned error loading database: %v", err)
 	}
