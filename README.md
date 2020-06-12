@@ -29,9 +29,6 @@ The general layout looks like the following:
 │   └─── <some_folder>: Any name is possible (typically represents a sub app of a database, just used for better grouping of migrations)
 │       │   20171101000001_my_migration.sql
 │       │   ...
-|       └─── prepare
-│           │   20171101000001_my_migration.sql
-│           │   ...
 |       └─── verify
 │           │   20171101000001_my_migration.sql
 │           │   ...
@@ -44,10 +41,6 @@ Configuration files, which are stored in the `_environments` folder (see
 
 ```yaml
 db_type: postgres
-# whether to execute scripts in the prepare folder
-# this is usually only for small seeds in local development
-# and for this the prepare flag should usually be False in staging/production environments
-prepare: True
 host: localhost
 port: 35434
 db_name: my_db
@@ -65,3 +58,7 @@ subcommand:
 ./go_migrations start --help
 ...
 ```
+
+## TODOs
+
+- Apply "Prepare" Scripts. Is this used?

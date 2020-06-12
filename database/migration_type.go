@@ -15,7 +15,6 @@ type FileMigration struct {
 	UpSQL       string
 	DownSQL     string
 	VerifySQL   string
-	PrepareSQL  string
 	ID          string
 	Description string
 	Filename    string
@@ -46,9 +45,6 @@ func (mig *FileMigration) LoadFromFile(migrationPath string) error {
 		return err
 	}
 	if err := mig.loadVerify(migrationPath); err != nil {
-		return err
-	}
-	if err := mig.loadPrepare(migrationPath); err != nil {
 		return err
 	}
 
@@ -106,28 +102,6 @@ func (mig *FileMigration) loadVerify(migrationPath string) error {
 	if mig.VerifySQL == "" {
 		return fmt.Errorf("Verify file for %s was empty", migrationPath)
 	}
-
-	return nil
-}
-
-func (mig *FileMigration) loadPrepare(migrationPath string) error {
-	preparePath := filepath.Join(
-		filepath.Dir(migrationPath), "prepare", filepath.Base(migrationPath),
-	)
-	prepareFile, err := os.Open(preparePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-
-		return fmt.Errorf("Couldn't open prepare file: %v", err)
-	}
-	defer prepareFile.Close()
-	prepare, err := ioutil.ReadAll(prepareFile)
-	if err != nil {
-		return fmt.Errorf("Couldn't read prepare file: %v", err)
-	}
-	mig.PrepareSQL = strings.Trim(string(prepare), "\n")
 
 	return nil
 }

@@ -32,12 +32,6 @@ func TestLoadMigration(t *testing.T) {
 		verifySQL, 0777,
 	)
 
-	prepareSQL := []byte("SELECT 2")
-	ioutil.WriteFile(
-		filepath.Join(migrationPath, "_common", "prepare", filename),
-		prepareSQL, 0777,
-	)
-
 	migration := FileMigration{}
 	err := migration.LoadFromFile(filepath.Join(migrationPath, "_common", filename))
 	if err != nil {
@@ -48,7 +42,6 @@ func TestLoadMigration(t *testing.T) {
 		UpSQL:       "CREATE SCHEMA foo;",
 		DownSQL:     "DROP SCHEMA foo;",
 		VerifySQL:   "SELECT 1",
-		PrepareSQL:  "SELECT 2",
 		ID:          "20171101000001",
 		Description: "foo_bar_baz",
 		Filename:    filename,
@@ -110,23 +103,6 @@ func TestRequireVerifySqlContent(t *testing.T) {
 	}
 }
 
-func TestOptionalPrepareSQL(t *testing.T) {
-	filename := "20171101000001_foo.sql"
-	appPath, cleanup := setupMigrationFor(t, filename)
-	defer cleanup()
-
-	os.Remove(filepath.Join(appPath, "prepare", filename))
-
-	migration := FileMigration{}
-	err := migration.LoadFromFile(filepath.Join(appPath, filename))
-	if err != nil {
-		t.Errorf("Did get an error for a missing prepare script: %v", err)
-	}
-	if migration.PrepareSQL != "" {
-		t.Errorf("Expected prepareSQL of '', but got '%s'", migration.PrepareSQL)
-	}
-}
-
 func TestRequireMigrationContent(t *testing.T) {
 	var invalidContents = []struct{ name, migration string }{
 		{"empty migration", ""},
@@ -161,7 +137,6 @@ func setupFolder(t *testing.T) (func(), string) {
 
 	os.Mkdir(filepath.Join(dir, "_common"), 0777)
 	os.Mkdir(filepath.Join(dir, "_common", "verify"), 0777)
-	os.Mkdir(filepath.Join(dir, "_common", "prepare"), 0777)
 
 	return cleanup, dir
 }
@@ -177,7 +152,6 @@ func setupMigrationFor(t *testing.T, migrationName string) (
 
 	os.Mkdir(filepath.Join(dir, "_common"), 0777)
 	os.Mkdir(filepath.Join(dir, "_common", "verify"), 0777)
-	os.Mkdir(filepath.Join(dir, "_common", "prepare"), 0777)
 
 	basePath := filepath.Join(dir, "_common")
 
@@ -186,9 +160,6 @@ func setupMigrationFor(t *testing.T, migrationName string) (
 
 	verifySQL := []byte("SELECT 1")
 	ioutil.WriteFile(filepath.Join(basePath, "verify", migrationName), verifySQL, 0777)
-
-	prepareSQL := []byte("SELECT 2")
-	ioutil.WriteFile(filepath.Join(basePath, "prepare", migrationName), prepareSQL, 0777)
 
 	return basePath, cleanup
 }

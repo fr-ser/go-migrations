@@ -215,11 +215,9 @@ func setupFolder(t *testing.T) (func(), string) {
 	os.Mkdir(filepath.Join(dir, "_environments"), 0777)
 	os.Mkdir(filepath.Join(dir, "common"), 0777)
 	os.Mkdir(filepath.Join(dir, "common", "verify"), 0777)
-	os.Mkdir(filepath.Join(dir, "common", "prepare"), 0777)
 
 	defaultConfig := dedent.Dedent(`
 		db_type: postgres
-		prepare: True
 		host: localhost
 		port: 35432
 		db_name: my_db

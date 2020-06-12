@@ -112,7 +112,6 @@ func TestNoDuplicateIDs(t *testing.T) {
 func saveMigrationFor(basePath, application, migrationName string) FileMigration {
 	os.Mkdir(filepath.Join(basePath, application), 0777)
 	os.Mkdir(filepath.Join(basePath, application, "verify"), 0777)
-	os.Mkdir(filepath.Join(basePath, application, "prepare"), 0777)
 
 	appPath := filepath.Join(basePath, application)
 
@@ -122,9 +121,6 @@ func saveMigrationFor(basePath, application, migrationName string) FileMigration
 	verifySQL := []byte("SELECT 1")
 	ioutil.WriteFile(filepath.Join(appPath, "verify", migrationName), verifySQL, 0777)
 
-	prepareSQL := []byte("SELECT 2")
-	ioutil.WriteFile(filepath.Join(appPath, "prepare", migrationName), prepareSQL, 0777)
-
 	return FileMigration{
 		Filename:    migrationName,
 		ID:          migrationName[0:14],
@@ -132,7 +128,6 @@ func saveMigrationFor(basePath, application, migrationName string) FileMigration
 		Application: application,
 		UpSQL:       "CREATE SCHEMA template;",
 		DownSQL:     "DROP SCHEMA template;",
-		PrepareSQL:  "SELECT 2",
 		VerifySQL:   "SELECT 1",
 	}
 }

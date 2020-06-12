@@ -1,5 +1,4 @@
 db_type: postgres
-prepare: True
 host: localhost
 port: 35434
 db_name: my_db

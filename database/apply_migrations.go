@@ -80,7 +80,6 @@ func FilterUpMigrationsByCount(count uint, all bool, fileMigrations []FileMigrat
 }
 
 // ApplyUpMigration applies the up migration in a transaction
-// Depending on the config it also first runs the prepare script
 // After the migration a verify script is executed and rolled back in a separate transaction.
 // If the verify script fails the downmigration is executed (also in a transaction)
 func ApplyUpMigration(db *sql.DB, migration FileMigration, changelogTable string) error {

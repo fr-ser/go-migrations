@@ -13,7 +13,6 @@ import (
 
 var validConfigYaml = dedent.Dedent(`
 	db_type: postgres
-	prepare: True
 	host: localhost
 	port: 35432
 	db_name: zlab
@@ -31,7 +30,6 @@ func TestLoadValidConfig(t *testing.T) {
 	expectedConfig.ChangelogName = "migrations_changelog"
 	expectedConfig.MigrationsPath = "./migrations"
 	expectedConfig.Environment = "test_env"
-	expectedConfig.ApplyPrepareScripts = true
 	expectedConfig.Db.Type = "postgres"
 	expectedConfig.Db.Host = "localhost"
 	expectedConfig.Db.Port = 35432

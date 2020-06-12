@@ -12,7 +12,6 @@ import (
 // fileConfig is a direct translation of the config YAML into a struct
 type fileConfig struct {
 	DbType   string `yaml:"db_type"`
-	Prepare  bool   `yaml:"prepare"`
 	Host     string `yaml:"host"`
 	Port     uint16 `yaml:"port"`
 	DbName   string `yaml:"db_name"`
@@ -21,13 +20,12 @@ type fileConfig struct {
 }
 
 // Config stores configuration for database environment like host, port
-// and also migration parameters like whether to apply prepare scripts
+// and also migration parameters like the migration path
 type Config struct {
-	MigrationsPath      string
-	Environment         string
-	ApplyPrepareScripts bool
-	ChangelogName       string
-	Db                  struct {
+	MigrationsPath string
+	Environment    string
+	ChangelogName  string
+	Db             struct {
 		Type     string
 		Host     string
 		Port     uint16
@@ -75,7 +73,6 @@ func unmarshalConfig(path string) (Config, error) {
 		return databaseConfig, fmt.Errorf("Couldn't unmarshal yaml: %v", err)
 	}
 
-	databaseConfig.ApplyPrepareScripts = fConfig.Prepare
 	databaseConfig.Db.Type = fConfig.DbType
 	databaseConfig.Db.Host = fConfig.Host
 	databaseConfig.Db.Port = fConfig.Port
