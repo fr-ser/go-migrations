@@ -18,6 +18,11 @@ GRANT USAGE ON SCHEMA db_aggregation TO db_viewer, db_agg_viewer;
 
 -- //@UNDO
 -- SQL to undo the change goes here.
+REVOKE USAGE ON SCHEMA db_aggregation FROM db_viewer, db_agg_viewer;
+REVOKE USAGE ON SCHEMA db_stage FROM db_viewer, db_agg_viewer;
+
+DROP ROLE db_viewer;
+DROP ROLE db_agg_viewer;
 
 DROP SCHEMA db_aggregation;
 DROP SCHEMA db_stage;
