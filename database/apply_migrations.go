@@ -97,6 +97,9 @@ func FilterUpMigrationsByCount(count uint, all bool, fileMigrations []FileMigrat
 ) {
 	appliedCount := len(appliedMigrations)
 
+	if appliedCount == len(fileMigrations) {
+		return migrations, fmt.Errorf("No migrations left to apply")
+	}
 	if count > 0 && appliedCount+int(count) > len(fileMigrations) {
 		log.Warningf(
 			dedent.Dedent(`
@@ -105,9 +108,6 @@ func FilterUpMigrationsByCount(count uint, all bool, fileMigrations []FileMigrat
 			`), count,
 		)
 		all = true
-	}
-	if appliedCount == len(fileMigrations) {
-		return migrations, fmt.Errorf("No migrations left to apply")
 	}
 
 	if all {
