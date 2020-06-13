@@ -18,12 +18,9 @@ func resetMockVariables() {
 	mockableEnsureConsistentMigrations = database.EnsureConsistentMigrations
 	mockableGetFileMigrations = database.GetFileMigrations
 	mockableGetAppliedMigrations = database.GetAppliedMigrations
-	mockableApplyUpMigration = database.ApplyUpMigration
-	mockableApplyDownMigration = database.ApplyDownMigration
-	mockableFilterUpMigrationsByText = database.FilterUpMigrationsByText
-	mockableFilterDownMigrationsByText = database.FilterDownMigrationsByText
-	mockableFilterUpMigrationsByCount = database.FilterUpMigrationsByCount
-	mockableFilterDownMigrationsByCount = database.FilterDownMigrationsByCount
+	mockableApplyMigration = database.ApplyMigration
+	mockableFilterMigrationsByText = database.FilterMigrationsByText
+	mockableFilterMigrationsByCount = database.FilterMigrationsByCount
 }
 
 func TestMain(m *testing.M) {

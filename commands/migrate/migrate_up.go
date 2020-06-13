@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"go-migrations/commands"
+	"go-migrations/internal/direction"
 )
 
 var upFlags = []cli.Flag{
@@ -63,7 +64,7 @@ var migrateUpCommand = &cli.Command{
 		}
 
 		if c.String("only") != "" {
-			if err := db.ApplySpecificUpMigration(c.String("only")); err != nil {
+			if err := db.ApplySpecificMigration(c.String("only"), direction.Up); err != nil {
 				return err
 			}
 		} else {
@@ -75,7 +76,8 @@ var migrateUpCommand = &cli.Command{
 			if upCount == 0 && !c.Bool("all") {
 				upCount = 1
 			}
-			if err := db.ApplyUpMigrationsWithCount(upCount, c.Bool("all")); err != nil {
+			err = db.ApplyMigrationsWithCount(upCount, c.Bool("all"), direction.Up)
+			if err != nil {
 				return err
 			}
 		}

@@ -5,6 +5,7 @@ import (
 
 	"go-migrations/database"
 	"go-migrations/internal"
+	"go-migrations/internal/direction"
 )
 
 var dbLoadArgsDown []string
@@ -32,8 +33,8 @@ func TestMigrateDownDefaults(t *testing.T) {
 	fakeDbDown.AssertWaitForStartCalled(t, true)
 	fakeDbDown.AssertEnsureMigrationsChangelogCalled(t, true)
 	fakeDbDown.AssertEnsureConsistentMigrationsCalled(t, true)
-	fakeDbDown.AssertApplyDownMigrationsWithCountCalledWith(t, 1, false)
-	fakeDbDown.AssertApplySpecificDownMigrationCalled(t, false)
+	fakeDbDown.AssertApplyMigrationsWithCountCalledWith(t, 1, false, direction.Down)
+	fakeDbDown.AssertApplySpecificMigrationCalled(t, false)
 }
 
 func TestMigrateDownWithCount(t *testing.T) {
@@ -52,8 +53,8 @@ func TestMigrateDownWithCount(t *testing.T) {
 	fakeDbDown.AssertWaitForStartCalled(t, true)
 	fakeDbDown.AssertEnsureMigrationsChangelogCalled(t, true)
 	fakeDbDown.AssertEnsureConsistentMigrationsCalled(t, true)
-	fakeDbDown.AssertApplyDownMigrationsWithCountCalledWith(t, 2, false)
-	fakeDbDown.AssertApplySpecificDownMigrationCalled(t, false)
+	fakeDbDown.AssertApplyMigrationsWithCountCalledWith(t, 2, false, direction.Down)
+	fakeDbDown.AssertApplySpecificMigrationCalled(t, false)
 
 }
 
@@ -73,8 +74,8 @@ func TestMigrateDownWithAll(t *testing.T) {
 	fakeDbDown.AssertWaitForStartCalled(t, true)
 	fakeDbDown.AssertEnsureMigrationsChangelogCalled(t, true)
 	fakeDbDown.AssertEnsureConsistentMigrationsCalled(t, true)
-	fakeDbDown.AssertApplyDownMigrationsWithCountCalledWith(t, 0, true)
-	fakeDbDown.AssertApplySpecificDownMigrationCalled(t, false)
+	fakeDbDown.AssertApplyMigrationsWithCountCalledWith(t, 0, true, direction.Down)
+	fakeDbDown.AssertApplySpecificMigrationCalled(t, false)
 
 }
 
@@ -93,8 +94,8 @@ func TestMigrateDownWithOnly(t *testing.T) {
 
 	fakeDbDown.AssertWaitForStartCalled(t, true)
 	fakeDbDown.AssertEnsureMigrationsChangelogCalled(t, true)
-	fakeDbDown.AssertApplySpecificDownMigrationCalledWith(t, "sth")
-	fakeDbDown.AssertApplyDownMigrationsWithCountCalled(t, false)
+	fakeDbDown.AssertApplySpecificMigrationCalledWith(t, "sth", direction.Down)
+	fakeDbDown.AssertApplyMigrationsWithCountCalled(t, false)
 	fakeDbDown.AssertEnsureConsistentMigrationsCalled(t, false)
 }
 

@@ -1,8 +1,10 @@
 package database
 
 import (
-	"go-migrations/database/config"
 	"time"
+
+	"go-migrations/database/config"
+	"go-migrations/internal/direction"
 )
 
 // Database is an abstraction over the underlying database and configuration models
@@ -14,20 +16,11 @@ type Database interface {
 	// ApplyAllUpMigrations applies all up migrations
 	ApplyAllUpMigrations() error
 
-	// ApplySpecificUpMigration applies one specific up migration based on a string search
-	// of the filename
-	ApplySpecificUpMigration(filter string) error
+	// ApplySpecificMigration applies one migration based on a string search of the filename
+	ApplySpecificMigration(filter string, direction direction.MigrateDirection) error
 	// ApplyUpMigrationsWithCount applies a number of up migration starting from the last
 	// by providing the "all" flag all remaining up migrations are applied
-	ApplyUpMigrationsWithCount(count uint, all bool) error
-	// ApplySpecificDownMigration applies one specific down migration based on a string search
-	// of the filename
-	ApplySpecificDownMigration(filter string) error
-	// ApplyDownMigrationsWithCount applies a number of down migration starting from the last
-	// applied
-	// by providing the "all" flag all remaining down migrations, which have been rolled out,
-	//  are applied
-	ApplyDownMigrationsWithCount(count uint, all bool) error
+	ApplyMigrationsWithCount(count uint, all bool, direction direction.MigrateDirection) error
 
 	// EnsureMigrationsChangelog checks if a changelog table already exists and creates it if
 	// necessary

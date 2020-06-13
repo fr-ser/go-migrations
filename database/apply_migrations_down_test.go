@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"go-migrations/internal/direction"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -27,7 +28,7 @@ func TestApplyDownMigration(t *testing.T) {
 	}
 
 	db, _, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	err := ApplyDownMigration(db, expectedMigration, "schema.sth")
+	err := ApplyMigration(db, expectedMigration, "schema.sth", direction.Down)
 	if err != nil {
 		t.Errorf("Expected no error for applying up migrations, but got: %s", err)
 	}
@@ -61,7 +62,7 @@ func TestApplyDownMigrationDownMigrationError(t *testing.T) {
 	}
 
 	db, _, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	err := ApplyDownMigration(db, FileMigration{}, "sth")
+	err := ApplyMigration(db, FileMigration{}, "sth", direction.Down)
 	if err == nil {
 		t.Errorf("Expected error for applying up migrations, but got nothing")
 	}
@@ -88,7 +89,7 @@ func TestApplyDownMigrationChangelogError(t *testing.T) {
 	}
 
 	db, _, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	err := ApplyDownMigration(db, FileMigration{}, "sth")
+	err := ApplyMigration(db, FileMigration{}, "sth", direction.Down)
 	if err == nil {
 		t.Errorf("Expected error for applying up migrations, but got nothing")
 	}
@@ -198,8 +199,8 @@ func TestFilterDownMigrationsByCount(t *testing.T) {
 			expectedMigrations = append(expectedMigrations, FileMigration{ID: id})
 		}
 
-		migrations, err := FilterDownMigrationsByCount(
-			testCase.count, testCase.all, fileMigrations, appliedMigrations,
+		migrations, err := FilterMigrationsByCount(
+			testCase.count, testCase.all, direction.Down, fileMigrations, appliedMigrations,
 		)
 		if err != nil {
 			t.Errorf("Expected no error, but got: %s", err)
@@ -212,8 +213,8 @@ func TestFilterDownMigrationsByCount(t *testing.T) {
 }
 
 func TestFilterDownMigrationsByCountNothingLeft(t *testing.T) {
-	_, err := FilterDownMigrationsByCount(
-		3, false, []FileMigration{{ID: "1"}}, []AppliedMigration{},
+	_, err := FilterMigrationsByCount(
+		3, false, direction.Down, []FileMigration{{ID: "1"}}, []AppliedMigration{},
 	)
 	if err == nil {
 		t.Errorf("Expected error, but got  nothing")
@@ -263,8 +264,9 @@ func TestFilterDownMigrationsByText(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		migration, err := FilterDownMigrationsByText(
-			testCase.filter, testCase.fileMigrations, testCase.appliedMigrations,
+		migration, err := FilterMigrationsByText(
+			testCase.filter, direction.Down,
+			testCase.fileMigrations, testCase.appliedMigrations,
 		)
 		if err != nil {
 			t.Errorf("Expected no error, but got: %s", err)
@@ -313,8 +315,9 @@ func TestFilterDownMigrationsByTextError(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		_, err := FilterDownMigrationsByText(
-			testCase.filter, testCase.fileMigrations, testCase.appliedMigrations,
+		_, err := FilterMigrationsByText(
+			testCase.filter, direction.Down,
+			testCase.fileMigrations, testCase.appliedMigrations,
 		)
 		if err == nil {
 			t.Errorf("Expected error, but got none")

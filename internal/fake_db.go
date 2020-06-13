@@ -5,27 +5,32 @@ import (
 	"time"
 
 	"go-migrations/database/config"
+	"go-migrations/internal/direction"
+
+	"github.com/kylelemons/godebug/pretty"
 )
 
-// TODO: change to "assertWaitForStartCalled(true)"
-
 type applyMigrationsWithCountArgs struct {
-	count uint
-	all   bool
+	count     uint
+	all       bool
+	direction direction.MigrateDirection
+}
+
+type applySpecificMigrationArgs struct {
+	filter    string
+	direction direction.MigrateDirection
 }
 
 // FakeDbWithSpy implements the database interface and saves method calls
 type FakeDbWithSpy struct {
-	initCalls                         []bool
-	bootstrapCalls                    []bool
-	waitForStartCalls                 []bool
-	ensureMigrationsChangelogCalls    []bool
-	ensureConsistentMigrationsCalls   []bool
-	applyAllUpMigrationsCalls         []bool
-	applyUpMigrationsWithCountCalls   []applyMigrationsWithCountArgs
-	applySpecificUpMigrationCalls     []string
-	applyDownMigrationsWithCountCalls []applyMigrationsWithCountArgs
-	applySpecificDownMigrationCalls   []string
+	initCalls                       []bool
+	bootstrapCalls                  []bool
+	waitForStartCalls               []bool
+	ensureMigrationsChangelogCalls  []bool
+	ensureConsistentMigrationsCalls []bool
+	applyAllUpMigrationsCalls       []bool
+	applyMigrationsWithCountCalls   []applyMigrationsWithCountArgs
+	applySpecificMigrationCalls     []applySpecificMigrationArgs
 }
 
 // WaitForStart saves the call
@@ -119,150 +124,87 @@ func (db *FakeDbWithSpy) Init(_ config.Config) error {
 	return nil
 }
 
-// ApplySpecificUpMigration applies one up migration by a filter
-func (db *FakeDbWithSpy) ApplySpecificUpMigration(filter string) error {
-	db.applySpecificUpMigrationCalls = append(db.applySpecificUpMigrationCalls, filter)
-	return nil
-}
-
-// AssertApplySpecificUpMigrationCalled checks for at least one call
-func (db *FakeDbWithSpy) AssertApplySpecificUpMigrationCalled(t *testing.T, expectCalled bool) (
-	wasCalled bool,
-) {
-	wasCalled = len(db.applySpecificUpMigrationCalls) > 0
-
-	if wasCalled && !expectCalled {
-		t.Errorf("ApplySpecificUpMigration was called but shouldn't have been")
-	} else if !wasCalled && expectCalled {
-		t.Errorf("ApplySpecificUpMigration wasn't called but should have been")
-	}
-	return wasCalled
-}
-
-// AssertApplySpecificUpMigrationCalledWith checks the arguments of the last call
-func (db *FakeDbWithSpy) AssertApplySpecificUpMigrationCalledWith(t *testing.T, filter string) {
-	if !db.AssertApplySpecificUpMigrationCalled(t, true) {
-		return
-	}
-	lastCall := db.applySpecificUpMigrationCalls[len(db.applySpecificUpMigrationCalls)-1]
-	if lastCall != filter {
-		t.Errorf(
-			"ApplySpecificUpMigration was called with '%s' instead of '%s'", lastCall, filter,
-		)
-	}
-}
-
-// ApplySpecificDownMigration applies one Down migration by a filter
-func (db *FakeDbWithSpy) ApplySpecificDownMigration(filter string) error {
-	db.applySpecificDownMigrationCalls = append(db.applySpecificDownMigrationCalls, filter)
-	return nil
-}
-
-// AssertApplySpecificDownMigrationCalled checks for at least one call
-func (db *FakeDbWithSpy) AssertApplySpecificDownMigrationCalled(t *testing.T, expectCalled bool) (
-	wasCalled bool,
-) {
-	wasCalled = len(db.applySpecificDownMigrationCalls) > 0
-
-	if wasCalled && !expectCalled {
-		t.Errorf("ApplySpecificDownMigration was called but shouldn't have been")
-	} else if !wasCalled && expectCalled {
-		t.Errorf("ApplySpecificDownMigration wasn't called but should have been")
-	}
-	return wasCalled
-}
-
-// AssertApplySpecificDownMigrationCalledWith checks the arguments of the last call
-func (db *FakeDbWithSpy) AssertApplySpecificDownMigrationCalledWith(t *testing.T, filter string) {
-	if !db.AssertApplySpecificDownMigrationCalled(t, true) {
-		return
-	}
-	lastCall := db.applySpecificDownMigrationCalls[len(db.applySpecificDownMigrationCalls)-1]
-	if lastCall != filter {
-		t.Errorf(
-			"ApplySpecificDownMigration was called with '%s' instead of '%s'", lastCall, filter,
-		)
-	}
-}
-
-// ApplyUpMigrationsWithCount applies Up migration by a count
-func (db *FakeDbWithSpy) ApplyUpMigrationsWithCount(count uint, all bool) error {
-	db.applyUpMigrationsWithCountCalls = append(
-		db.applyUpMigrationsWithCountCalls,
-		applyMigrationsWithCountArgs{count: count, all: all},
+// ApplySpecificMigration applies one up migration by a filter
+func (db *FakeDbWithSpy) ApplySpecificMigration(filter string, direction direction.MigrateDirection) error {
+	db.applySpecificMigrationCalls = append(
+		db.applySpecificMigrationCalls,
+		applySpecificMigrationArgs{filter: filter, direction: direction},
 	)
 	return nil
 }
 
-// AssertApplyUpMigrationsWithCountCalled checks for at least one call
-func (db *FakeDbWithSpy) AssertApplyUpMigrationsWithCountCalled(t *testing.T, expectCalled bool) (
+// AssertApplySpecificMigrationCalled checks for at least one call
+func (db *FakeDbWithSpy) AssertApplySpecificMigrationCalled(t *testing.T, expectCalled bool) (
 	wasCalled bool,
 ) {
-	wasCalled = len(db.applyUpMigrationsWithCountCalls) > 0
+	wasCalled = len(db.applySpecificMigrationCalls) > 0
 
 	if wasCalled && !expectCalled {
-		t.Errorf("ApplyUpMigrationsWithCount was called but shouldn't have been")
+		t.Errorf("ApplySpecificMigration was called but shouldn't have been")
 	} else if !wasCalled && expectCalled {
-		t.Errorf("ApplyUpMigrationsWithCount wasn't called but should have been")
+		t.Errorf("ApplySpecificMigration wasn't called but should have been")
 	}
 	return wasCalled
-
 }
 
-// AssertApplyUpMigrationsWithCountCalledWith checks the arguments of the last call
-func (db *FakeDbWithSpy) AssertApplyUpMigrationsWithCountCalledWith(t *testing.T, count uint,
-	all bool,
+// AssertApplySpecificMigrationCalledWith checks the arguments of the last call
+func (db *FakeDbWithSpy) AssertApplySpecificMigrationCalledWith(
+	t *testing.T, filter string, direction direction.MigrateDirection,
 ) {
-	if !db.AssertApplyUpMigrationsWithCountCalled(t, true) {
+	if !db.AssertApplySpecificMigrationCalled(t, true) {
 		return
 	}
-	lastCall := db.applyUpMigrationsWithCountCalls[len(db.applyUpMigrationsWithCountCalls)-1]
-	if lastCall.all != all || lastCall.count != count {
+	lastCall := db.applySpecificMigrationCalls[len(db.applySpecificMigrationCalls)-1]
+	expectedCall := applySpecificMigrationArgs{filter: filter, direction: direction}
+	if lastCall != expectedCall {
 		t.Errorf(
-			"ApplyUpMigrationsWithCount was called with %+v instead of %+v",
-			lastCall,
-			applyMigrationsWithCountArgs{all: all, count: count},
+			"ApplySpecificMigration was called with '%v' instead of '%v'",
+			lastCall, expectedCall,
 		)
 	}
 }
 
-// ApplyDownMigrationsWithCount applies Down migration by a count
-func (db *FakeDbWithSpy) ApplyDownMigrationsWithCount(count uint, all bool) error {
-	db.applyDownMigrationsWithCountCalls = append(
-		db.applyDownMigrationsWithCountCalls,
-		applyMigrationsWithCountArgs{count: count, all: all},
+// ApplyMigrationsWithCount applies Up migration by a count
+func (db *FakeDbWithSpy) ApplyMigrationsWithCount(
+	count uint, all bool, dir direction.MigrateDirection,
+) error {
+	db.applyMigrationsWithCountCalls = append(
+		db.applyMigrationsWithCountCalls,
+		applyMigrationsWithCountArgs{count: count, all: all, direction: dir},
 	)
 	return nil
 }
 
-// AssertApplyDownMigrationsWithCountCalled checks for at least one call
-func (db *FakeDbWithSpy) AssertApplyDownMigrationsWithCountCalled(t *testing.T, expectCalled bool) (
+// AssertApplyMigrationsWithCountCalled checks for at least one call
+func (db *FakeDbWithSpy) AssertApplyMigrationsWithCountCalled(t *testing.T, expectCalled bool) (
 	wasCalled bool,
 ) {
-	wasCalled = len(db.applyDownMigrationsWithCountCalls) > 0
+	wasCalled = len(db.applyMigrationsWithCountCalls) > 0
 
 	if wasCalled && !expectCalled {
-		t.Errorf("ApplyDownMigrationsWithCount was called but shouldn't have been")
+		t.Errorf("ApplyMigrationsWithCount was called but shouldn't have been")
 	} else if !wasCalled && expectCalled {
-		t.Errorf("ApplyDownMigrationsWithCount wasn't called but should have been")
+		t.Errorf("ApplyMigrationsWithCount wasn't called but should have been")
 	}
 	return wasCalled
 
 }
 
-// AssertApplyDownMigrationsWithCountCalledWith checks the arguments of the last call
-func (db *FakeDbWithSpy) AssertApplyDownMigrationsWithCountCalledWith(t *testing.T, count uint,
-	all bool,
+// AssertApplyMigrationsWithCountCalledWith checks the arguments of the last call
+func (db *FakeDbWithSpy) AssertApplyMigrationsWithCountCalledWith(
+	t *testing.T, count uint, all bool, dir direction.MigrateDirection,
 ) {
-	if !db.AssertApplyDownMigrationsWithCountCalled(t, true) {
+	if !db.AssertApplyMigrationsWithCountCalled(t, true) {
 		return
 	}
-	lastCall := db.applyDownMigrationsWithCountCalls[len(db.applyDownMigrationsWithCountCalls)-1]
-	if lastCall.all != all || lastCall.count != count {
+	lastCall := db.applyMigrationsWithCountCalls[len(db.applyMigrationsWithCountCalls)-1]
+	expectedCall := applyMigrationsWithCountArgs{
+		count: count, all: all, direction: dir,
+	}
+	if diff := pretty.Compare(lastCall, expectedCall); diff != "" {
 		t.Errorf(
-			"ApplyDownMigrationsWithCount was called with %+v instead of %+v",
-			lastCall,
-			applyMigrationsWithCountArgs{all: all, count: count},
+			"ApplyMigrationsWithCount was called with %+v instead of %+v",
+			lastCall, expectedCall,
 		)
 	}
 }

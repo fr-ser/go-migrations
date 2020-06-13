@@ -8,6 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lithammer/dedent"
+
+	"go-migrations/internal/direction"
 )
 
 var (
@@ -18,9 +20,19 @@ var (
 	mockableApplyVerify         = ApplyVerify
 )
 
-// FilterUpMigrationsByText filters the migrations by filename. If more then one unapplied migration
-// remains an error is thrown
-func FilterUpMigrationsByText(filter string, fileMigrations []FileMigration,
+// FilterMigrationsByText filters the migrations by filename.
+// If more then one migration remains an error is thrown
+func FilterMigrationsByText(
+	filter string, dir direction.MigrateDirection,
+	fileMigrations []FileMigration, appliedMigrations []AppliedMigration,
+) (FileMigration, error) {
+	if dir == direction.Down {
+		return filterDownMigrationsByText(filter, fileMigrations, appliedMigrations)
+	}
+	return filterUpMigrationsByText(filter, fileMigrations, appliedMigrations)
+}
+
+func filterUpMigrationsByText(filter string, fileMigrations []FileMigration,
 	appliedMigrations []AppliedMigration) (filteredMigration FileMigration, err error,
 ) {
 	appliedIDLookup := map[string]bool{}
@@ -52,9 +64,7 @@ func FilterUpMigrationsByText(filter string, fileMigrations []FileMigration,
 	return filteredMigration, nil
 }
 
-// FilterDownMigrationsByText filters the migrations by filename. If more then one applied migration
-// remains an error is thrown
-func FilterDownMigrationsByText(filter string, fileMigrations []FileMigration,
+func filterDownMigrationsByText(filter string, fileMigrations []FileMigration,
 	appliedMigrations []AppliedMigration) (filteredMigration FileMigration, err error,
 ) {
 	fileIDLookup := map[string]int{}
@@ -90,9 +100,20 @@ func FilterDownMigrationsByText(filter string, fileMigrations []FileMigration,
 	return filteredMigration, nil
 }
 
-// FilterUpMigrationsByCount filters the migrations for the next n unapplied migrations.
-// This relies on a "consistent changelog" and return an error if no migrations are left to apply
-func FilterUpMigrationsByCount(count uint, all bool, fileMigrations []FileMigration,
+// FilterMigrationsByCount filters the migrations for the next n migrations.
+// This relies on a "consistent changelog" and returns an error if no migrations are left
+// For down migrations the migrations are sorted reversed (descending by ID)
+func FilterMigrationsByCount(
+	count uint, all bool, dir direction.MigrateDirection,
+	fileMigrations []FileMigration, appliedMigrations []AppliedMigration,
+) ([]FileMigration, error) {
+	if dir == direction.Down {
+		return filterDownMigrationsByCount(count, all, fileMigrations, appliedMigrations)
+	}
+	return filterUpMigrationsByCount(count, all, fileMigrations, appliedMigrations)
+}
+
+func filterUpMigrationsByCount(count uint, all bool, fileMigrations []FileMigration,
 	appliedMigrations []AppliedMigration) (migrations []FileMigration, err error,
 ) {
 	appliedCount := len(appliedMigrations)
@@ -119,10 +140,7 @@ func FilterUpMigrationsByCount(count uint, all bool, fileMigrations []FileMigrat
 	return migrations, nil
 }
 
-// FilterDownMigrationsByCount filters the migrations for the next n applied migrations.
-// This relies on a "consistent changelog" and return an error if no migrations are left to remvoe
-// the migrations are returned in descending ID order
-func FilterDownMigrationsByCount(count uint, all bool, fileMigrations []FileMigration,
+func filterDownMigrationsByCount(count uint, all bool, fileMigrations []FileMigration,
 	appliedMigrations []AppliedMigration) (migrations []FileMigration, err error,
 ) {
 	appliedCount := len(appliedMigrations)
@@ -154,8 +172,18 @@ func FilterDownMigrationsByCount(count uint, all bool, fileMigrations []FileMigr
 	return migrations, nil
 }
 
-// ApplyDownMigration applies the down migration in a transaction and updates the changelog
-func ApplyDownMigration(db *sql.DB, migration FileMigration, changelogTable string) error {
+// ApplyMigration applies a migration in a transaction and updates the changelog
+// For up migrations a verify script is executed and rolled back in a separate transaction.
+func ApplyMigration(
+	db *sql.DB, migration FileMigration, changelogTable string, dir direction.MigrateDirection,
+) error {
+	if dir == direction.Down {
+		return applyDownMigration(db, migration, changelogTable)
+	}
+	return applyUpMigration(db, migration, changelogTable)
+}
+
+func applyDownMigration(db *sql.DB, migration FileMigration, changelogTable string) error {
 	if err := mockableMigrateDown(db, migration); err != nil {
 		return err
 	}
@@ -167,9 +195,7 @@ func ApplyDownMigration(db *sql.DB, migration FileMigration, changelogTable stri
 	return nil
 }
 
-// ApplyUpMigration applies the up migration in a transaction and updates the changelog
-// After the migration a verify script is executed and rolled back in a separate transaction.
-func ApplyUpMigration(db *sql.DB, migration FileMigration, changelogTable string) error {
+func applyUpMigration(db *sql.DB, migration FileMigration, changelogTable string) error {
 	if err := mockableMigrateUp(db, migration); err != nil {
 		return err
 	}

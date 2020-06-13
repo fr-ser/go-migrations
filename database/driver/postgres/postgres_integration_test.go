@@ -12,6 +12,7 @@ import (
 	"github.com/lithammer/dedent"
 
 	"go-migrations/database/driver"
+	"go-migrations/internal/direction"
 )
 
 var dbConn, _ = sql.Open("pgx", "postgresql://admin:admin_pass@localhost:35432/my_db")
@@ -183,7 +184,7 @@ func TestApplyUpMigrationsWithCount(t *testing.T) {
 		t.Fatalf("Error during changelog creation: %v", err)
 	}
 
-	if err := db.ApplyUpMigrationsWithCount(3, false); err != nil {
+	if err := db.ApplyMigrationsWithCount(3, false, direction.Up); err != nil {
 		t.Fatalf("Error during up migration: %v", err)
 	}
 

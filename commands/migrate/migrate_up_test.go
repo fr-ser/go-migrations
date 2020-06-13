@@ -5,6 +5,7 @@ import (
 
 	"go-migrations/database"
 	"go-migrations/internal"
+	"go-migrations/internal/direction"
 )
 
 var dbLoadArgsUp []string
@@ -32,8 +33,8 @@ func TestMigrateUpDefaults(t *testing.T) {
 	fakeDbUp.AssertWaitForStartCalled(t, true)
 	fakeDbUp.AssertEnsureMigrationsChangelogCalled(t, true)
 	fakeDbUp.AssertEnsureConsistentMigrationsCalled(t, true)
-	fakeDbUp.AssertApplyUpMigrationsWithCountCalledWith(t, 1, false)
-	fakeDbUp.AssertApplySpecificUpMigrationCalled(t, false)
+	fakeDbUp.AssertApplyMigrationsWithCountCalledWith(t, 1, false, direction.Up)
+	fakeDbUp.AssertApplySpecificMigrationCalled(t, false)
 }
 
 func TestMigrateUpWithCount(t *testing.T) {
@@ -52,8 +53,8 @@ func TestMigrateUpWithCount(t *testing.T) {
 	fakeDbUp.AssertWaitForStartCalled(t, true)
 	fakeDbUp.AssertEnsureMigrationsChangelogCalled(t, true)
 	fakeDbUp.AssertEnsureConsistentMigrationsCalled(t, true)
-	fakeDbUp.AssertApplyUpMigrationsWithCountCalledWith(t, 2, false)
-	fakeDbUp.AssertApplySpecificUpMigrationCalled(t, false)
+	fakeDbUp.AssertApplyMigrationsWithCountCalledWith(t, 2, false, direction.Up)
+	fakeDbUp.AssertApplySpecificMigrationCalled(t, false)
 
 }
 
@@ -73,8 +74,8 @@ func TestMigrateUpWithAll(t *testing.T) {
 	fakeDbUp.AssertWaitForStartCalled(t, true)
 	fakeDbUp.AssertEnsureMigrationsChangelogCalled(t, true)
 	fakeDbUp.AssertEnsureConsistentMigrationsCalled(t, true)
-	fakeDbUp.AssertApplyUpMigrationsWithCountCalledWith(t, 0, true)
-	fakeDbUp.AssertApplySpecificUpMigrationCalled(t, false)
+	fakeDbUp.AssertApplyMigrationsWithCountCalledWith(t, 0, true, direction.Up)
+	fakeDbUp.AssertApplySpecificMigrationCalled(t, false)
 
 }
 
@@ -93,8 +94,8 @@ func TestMigrateUpWithOnly(t *testing.T) {
 
 	fakeDbUp.AssertWaitForStartCalled(t, true)
 	fakeDbUp.AssertEnsureMigrationsChangelogCalled(t, true)
-	fakeDbUp.AssertApplySpecificUpMigrationCalledWith(t, "sth")
-	fakeDbUp.AssertApplyUpMigrationsWithCountCalled(t, false)
+	fakeDbUp.AssertApplySpecificMigrationCalledWith(t, "sth", direction.Up)
+	fakeDbUp.AssertApplyMigrationsWithCountCalled(t, false)
 	fakeDbUp.AssertEnsureConsistentMigrationsCalled(t, false)
 }
 
