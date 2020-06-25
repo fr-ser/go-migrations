@@ -29,6 +29,7 @@ type FakeDbWithSpy struct {
 	ensureMigrationsChangelogCalls  []bool
 	ensureConsistentMigrationsCalls []bool
 	applyAllUpMigrationsCalls       []bool
+	printMigrationStatusCalls       []bool
 	applyMigrationsWithCountCalls   []applyMigrationsWithCountArgs
 	applySpecificMigrationCalls     []applySpecificMigrationArgs
 }
@@ -64,6 +65,23 @@ func (db *FakeDbWithSpy) AssertBootstrapCalled(t *testing.T, expectCalled bool) 
 		t.Errorf("Bootstrap was called but shouldn't have been")
 	} else if !wasCalled && expectCalled {
 		t.Errorf("Bootstrap wasn't called but should have been")
+	}
+}
+
+// PrintMigrationStatus saves the call
+func (db *FakeDbWithSpy) PrintMigrationStatus() error {
+	db.applyAllUpMigrationsCalls = append(db.applyAllUpMigrationsCalls, true)
+	return nil
+}
+
+// AssertPrintMigrationStatusCalled checks for calls
+func (db *FakeDbWithSpy) AssertPrintMigrationStatusCalled(t *testing.T, expectCalled bool) {
+	wasCalled := len(db.applyAllUpMigrationsCalls) > 0
+
+	if wasCalled && !expectCalled {
+		t.Errorf("PrintMigrationStatus was called but shouldn't have been")
+	} else if !wasCalled && expectCalled {
+		t.Errorf("PrintMigrationStatus wasn't called but should have been")
 	}
 }
 

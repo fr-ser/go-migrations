@@ -171,3 +171,37 @@ func TestEnsureChangelogNotExists(t *testing.T) {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
+
+func TestPrintStatus(t *testing.T) {
+	defer resetMockVariables()
+	expectedRows := []database.MigrateStatusRow{{ID: "abc"}}
+	expectedStatus := "All good"
+
+	mockableGetMigrationStatus = func(
+		fileMigrations []database.FileMigration, appliedMigrations []database.AppliedMigration,
+	) (rows []database.MigrateStatusRow, statusNote string, err error) {
+		return expectedRows, expectedStatus, nil
+	}
+	var gotRows []database.MigrateStatusRow
+	var gotStatus string
+	mockablePrintStatusTable = func(rows []database.MigrateStatusRow, statusNote string) {
+		gotRows = rows
+		gotStatus = statusNote
+	}
+
+	pg := Postgres{}
+	pg.fileMigrations = []database.FileMigration{}
+	pg.appliedMigrations = []database.AppliedMigration{}
+	err := pg.PrintMigrationStatus()
+	if err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
+
+	if diff := pretty.Compare(expectedRows, gotRows); diff != "" {
+		t.Errorf("Did not pass right rows for print:\n%s", diff)
+	}
+	if expectedStatus != gotStatus {
+		t.Errorf("Expected status of '%s' but got '%s'", expectedStatus, gotStatus)
+	}
+
+}

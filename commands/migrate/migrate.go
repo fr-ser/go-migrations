@@ -51,5 +51,6 @@ var MigrateCommands = &cli.Command{
 	Subcommands: []*cli.Command{
 		migrateUpCommand,
 		migrateDownCommand,
+		migrateStatusCommand,
 	},
 }

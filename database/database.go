@@ -16,6 +16,9 @@ type Database interface {
 	// ApplyAllUpMigrations applies all up migrations
 	ApplyAllUpMigrations() error
 
+	// PrintMigrationStatus prints a human readable table about applied and unapplied migrations
+	PrintMigrationStatus() error
+
 	// ApplySpecificMigration applies one migration based on a string search of the filename
 	ApplySpecificMigration(filter string, direction direction.MigrateDirection) error
 	// ApplyUpMigrationsWithCount applies a number of up migration starting from the last

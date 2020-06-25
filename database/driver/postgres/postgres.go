@@ -25,6 +25,8 @@ var (
 	mockableApplyMigration             = database.ApplyMigration
 	mockableFilterMigrationsByText     = database.FilterMigrationsByText
 	mockableFilterMigrationsByCount    = database.FilterMigrationsByCount
+	mockableGetMigrationStatus         = database.GetMigrationStatus
+	mockablePrintStatusTable           = database.PrintStatusTable
 )
 
 var changelogTable = "public.migrations_changelog"
@@ -57,6 +59,35 @@ func (pg *Postgres) Bootstrap() error {
 	defer db.Close()
 
 	return mockableBootstrap(db, pg.config.MigrationsPath)
+}
+
+// PrintMigrationStatus prints a human readable table about applied and unapplied migrations
+func (pg *Postgres) PrintMigrationStatus() (err error) {
+	if pg.fileMigrations == nil {
+		pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	if pg.appliedMigrations == nil {
+		db, err := mockableSQLOpen("pgx", pg.connectionURL)
+		if err != nil {
+			return fmt.Errorf("Error opening database: %v", err)
+		}
+		defer db.Close()
+		pg.appliedMigrations, err = mockableGetAppliedMigrations(db, changelogTable)
+		if err != nil {
+			return err
+		}
+	}
+	rows, statusNote, err := mockableGetMigrationStatus(pg.fileMigrations, pg.appliedMigrations)
+	if err != nil {
+		return err
+	}
+	mockablePrintStatusTable(rows, statusNote)
+	return nil
 }
 
 // ApplyAllUpMigrations applies all up migrations
