@@ -6,12 +6,21 @@ import (
 	"sort"
 
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 )
+
+func colorizeRow(row table.Row) text.Colors {
+	if row[4] != "" {
+		return text.Colors{text.Reset, text.FgHiYellow}
+	}
+	return nil
+}
 
 // PrintStatusTable prints the migration status in a table format
 // optimized for human readability
 func PrintStatusTable(rows []MigrateStatusRow, statusNote string) {
 	t := table.NewWriter()
+	t.SetRowPainter(colorizeRow)
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"ID", "Name", "App", "Status", "Info"})
 
@@ -22,8 +31,7 @@ func PrintStatusTable(rows []MigrateStatusRow, statusNote string) {
 	}
 
 	t.Render()
-	fmt.Println(statusNote)
-
+	fmt.Println(text.FgHiRed.Sprint(statusNote))
 }
 
 // MigrateStatusRow is the status of one applied/local migration
