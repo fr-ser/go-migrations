@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"go-migrations/database"
 	"go-migrations/database/config"
 	"go-migrations/internal/direction"
 
@@ -29,7 +30,8 @@ type FakeDbWithSpy struct {
 	ensureMigrationsChangelogCalls  []bool
 	ensureConsistentMigrationsCalls []bool
 	applyAllUpMigrationsCalls       []bool
-	printMigrationStatusCalls       []bool
+	getFileMigrationsCalls          []bool
+	getAppliedMigrationsCalls       []bool
 	applyMigrationsWithCountCalls   []applyMigrationsWithCountArgs
 	applySpecificMigrationCalls     []applySpecificMigrationArgs
 }
@@ -68,20 +70,37 @@ func (db *FakeDbWithSpy) AssertBootstrapCalled(t *testing.T, expectCalled bool) 
 	}
 }
 
-// PrintMigrationStatus saves the call
-func (db *FakeDbWithSpy) PrintMigrationStatus() error {
-	db.applyAllUpMigrationsCalls = append(db.applyAllUpMigrationsCalls, true)
-	return nil
+// GetFileMigrations saves the call
+func (db *FakeDbWithSpy) GetFileMigrations() ([]database.FileMigration, error) {
+	db.getFileMigrationsCalls = append(db.getFileMigrationsCalls, true)
+	return nil, nil
 }
 
-// AssertPrintMigrationStatusCalled checks for calls
-func (db *FakeDbWithSpy) AssertPrintMigrationStatusCalled(t *testing.T, expectCalled bool) {
-	wasCalled := len(db.applyAllUpMigrationsCalls) > 0
+// AssertGetFileMigrationsCalled checks for calls
+func (db *FakeDbWithSpy) AssertGetFileMigrationsCalled(t *testing.T, expectCalled bool) {
+	wasCalled := len(db.getFileMigrationsCalls) > 0
 
 	if wasCalled && !expectCalled {
-		t.Errorf("PrintMigrationStatus was called but shouldn't have been")
+		t.Errorf("GetFileMigrations was called but shouldn't have been")
 	} else if !wasCalled && expectCalled {
-		t.Errorf("PrintMigrationStatus wasn't called but should have been")
+		t.Errorf("GetFileMigrations wasn't called but should have been")
+	}
+}
+
+// GetAppliedMigrations saves the call
+func (db *FakeDbWithSpy) GetAppliedMigrations() ([]database.AppliedMigration, error) {
+	db.getAppliedMigrationsCalls = append(db.getAppliedMigrationsCalls, true)
+	return nil, nil
+}
+
+// AssertGetAppliedMigrationsCalled checks for calls
+func (db *FakeDbWithSpy) AssertGetAppliedMigrationsCalled(t *testing.T, expectCalled bool) {
+	wasCalled := len(db.getAppliedMigrationsCalls) > 0
+
+	if wasCalled && !expectCalled {
+		t.Errorf("GetAppliedMigrations was called but shouldn't have been")
+	} else if !wasCalled && expectCalled {
+		t.Errorf("GetAppliedMigrations wasn't called but should have been")
 	}
 }
 

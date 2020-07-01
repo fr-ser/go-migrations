@@ -7,6 +7,12 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"go-migrations/commands"
+	"go-migrations/database"
+)
+
+var (
+	mockableGetMigrationStatus = database.GetMigrationStatus
+	mockablePrintStatusTable   = database.PrintStatusTable
 )
 
 var statusFlags = []cli.Flag{
@@ -41,11 +47,21 @@ var migrateStatusCommand = &cli.Command{
 		if created {
 			log.Warning("Created changelog table")
 		}
-		err = db.PrintMigrationStatus()
+
+		fileMigrations, err := db.GetFileMigrations()
+		if err != nil {
+			return err
+		}
+		appliedMigrations, err := db.GetAppliedMigrations()
 		if err != nil {
 			return err
 		}
 
+		rows, statusNote, err := mockableGetMigrationStatus(fileMigrations, appliedMigrations)
+		if err != nil {
+			return err
+		}
+		mockablePrintStatusTable(rows, statusNote)
 		return nil
 	},
 }

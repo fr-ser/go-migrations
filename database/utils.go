@@ -58,7 +58,7 @@ func EnsureConsistentMigrations(fileMigrations []FileMigration, appliedMigration
 				)
 			}
 			return fmt.Errorf(
-				"FileMigrations and AppliedMigrations are out of sync since the beginning.\n%s",
+				"Local and applied migrations are out of sync already at the first migration.\n%s",
 				moreInfo,
 			)
 		}

@@ -25,8 +25,6 @@ var (
 	mockableApplyMigration             = database.ApplyMigration
 	mockableFilterMigrationsByText     = database.FilterMigrationsByText
 	mockableFilterMigrationsByCount    = database.FilterMigrationsByCount
-	mockableGetMigrationStatus         = database.GetMigrationStatus
-	mockablePrintStatusTable           = database.PrintStatusTable
 )
 
 var changelogTable = "public.migrations_changelog"
@@ -61,44 +59,42 @@ func (pg *Postgres) Bootstrap() error {
 	return mockableBootstrap(db, pg.config.MigrationsPath)
 }
 
-// PrintMigrationStatus prints a human readable table about applied and unapplied migrations
-func (pg *Postgres) PrintMigrationStatus() (err error) {
-	if pg.fileMigrations == nil {
-		pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
-		if err != nil {
-			return err
-		}
-
+// GetFileMigrations returns the available migrations found locally (sorted by ID)
+func (pg *Postgres) GetFileMigrations() (migrations []database.FileMigration, err error) {
+	if pg.fileMigrations != nil {
+		return pg.fileMigrations, nil
 	}
 
-	if pg.appliedMigrations == nil {
-		db, err := mockableSQLOpen("pgx", pg.connectionURL)
-		if err != nil {
-			return fmt.Errorf("Error opening database: %v", err)
-		}
-		defer db.Close()
-		pg.appliedMigrations, err = mockableGetAppliedMigrations(db, changelogTable)
-		if err != nil {
-			return err
-		}
+	pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
+	return pg.fileMigrations, err
+}
+
+// GetAppliedMigrations gets all applied migrations from the changelog (sorted by ID)
+func (pg *Postgres) GetAppliedMigrations() (migrations []database.AppliedMigration, err error) {
+	if pg.appliedMigrations != nil {
+		return pg.appliedMigrations, nil
 	}
-	rows, statusNote, err := mockableGetMigrationStatus(pg.fileMigrations, pg.appliedMigrations)
+
+	db, err := mockableSQLOpen("pgx", pg.connectionURL)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("Error opening database: %v", err)
 	}
-	mockablePrintStatusTable(rows, statusNote)
-	return nil
+	defer db.Close()
+
+	pg.appliedMigrations, err = mockableGetAppliedMigrations(db, changelogTable)
+	return pg.appliedMigrations, err
 }
 
 // ApplyAllUpMigrations applies all up migrations
 func (pg *Postgres) ApplyAllUpMigrations() (err error) {
 	if pg.fileMigrations == nil {
-		pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
+		_, err = pg.GetFileMigrations()
 		if err != nil {
 			return err
 		}
 
 	}
+
 	db, err := mockableSQLOpen("pgx", pg.connectionURL)
 	if err != nil {
 		return fmt.Errorf("Error opening database: %v", err)
@@ -120,7 +116,7 @@ func (pg *Postgres) ApplySpecificMigration(
 	filter string, direction direction.MigrateDirection,
 ) (err error) {
 	if pg.fileMigrations == nil {
-		pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
+		_, err = pg.GetFileMigrations()
 		if err != nil {
 			return err
 		}
@@ -134,7 +130,7 @@ func (pg *Postgres) ApplySpecificMigration(
 	defer db.Close()
 
 	if pg.appliedMigrations == nil {
-		pg.appliedMigrations, err = mockableGetAppliedMigrations(db, changelogTable)
+		_, err = pg.GetAppliedMigrations()
 		if err != nil {
 			return err
 		}
@@ -174,7 +170,7 @@ func (pg *Postgres) ApplyMigrationsWithCount(
 	defer db.Close()
 
 	if pg.appliedMigrations == nil {
-		pg.appliedMigrations, err = mockableGetAppliedMigrations(db, changelogTable)
+		_, err = pg.GetAppliedMigrations()
 		if err != nil {
 			return err
 		}
@@ -237,7 +233,7 @@ func (pg *Postgres) EnsureMigrationsChangelog() (created bool, err error) {
 // EnsureConsistentMigrations checks for inconsistencies in the changelog
 func (pg *Postgres) EnsureConsistentMigrations() (err error) {
 	if pg.fileMigrations == nil {
-		pg.fileMigrations, err = mockableGetFileMigrations(pg.config.MigrationsPath)
+		_, err = pg.GetFileMigrations()
 		if err != nil {
 			return err
 		}
@@ -245,13 +241,7 @@ func (pg *Postgres) EnsureConsistentMigrations() (err error) {
 	}
 
 	if pg.appliedMigrations == nil {
-		db, err := mockableSQLOpen("pgx", pg.connectionURL)
-		if err != nil {
-			return fmt.Errorf("Error opening database: %v", err)
-		}
-		defer db.Close()
-
-		pg.appliedMigrations, err = mockableGetAppliedMigrations(db, changelogTable)
+		_, err = pg.GetAppliedMigrations()
 		if err != nil {
 			return err
 		}

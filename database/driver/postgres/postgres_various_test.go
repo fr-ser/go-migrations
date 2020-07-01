@@ -172,36 +172,50 @@ func TestEnsureChangelogNotExists(t *testing.T) {
 	}
 }
 
-func TestPrintStatus(t *testing.T) {
+func TestGetFileMigrations(t *testing.T) {
 	defer resetMockVariables()
-	expectedRows := []database.MigrateStatusRow{{ID: "abc"}}
-	expectedStatus := "All good"
+	expectedMigrations := []database.FileMigration{{ID: "1"}, {ID: "2"}}
 
-	mockableGetMigrationStatus = func(
-		fileMigrations []database.FileMigration, appliedMigrations []database.AppliedMigration,
-	) (rows []database.MigrateStatusRow, statusNote string, err error) {
-		return expectedRows, expectedStatus, nil
-	}
-	var gotRows []database.MigrateStatusRow
-	var gotStatus string
-	mockablePrintStatusTable = func(rows []database.MigrateStatusRow, statusNote string) {
-		gotRows = rows
-		gotStatus = statusNote
+	mockableGetFileMigrations = func(p string) ([]database.FileMigration, error) {
+		return expectedMigrations, nil
 	}
 
 	pg := Postgres{}
-	pg.fileMigrations = []database.FileMigration{}
-	pg.appliedMigrations = []database.AppliedMigration{}
-	err := pg.PrintMigrationStatus()
+	gotMigrations, err := pg.GetFileMigrations()
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}
 
-	if diff := pretty.Compare(expectedRows, gotRows); diff != "" {
+	if diff := pretty.Compare(expectedMigrations, gotMigrations); diff != "" {
 		t.Errorf("Did not pass right rows for print:\n%s", diff)
 	}
-	if expectedStatus != gotStatus {
-		t.Errorf("Expected status of '%s' but got '%s'", expectedStatus, gotStatus)
+}
+
+func TestGetAppliedMigrations(t *testing.T) {
+	defer resetMockVariables()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	mockableSQLOpen = func(a, b string) (*sql.DB, error) { return db, err }
+	mock.ExpectClose()
+
+	expectedMigrations := []database.AppliedMigration{{ID: "1"}, {ID: "2"}}
+
+	mockableGetAppliedMigrations = func(db *sql.DB, cl string) (
+		[]database.AppliedMigration, error,
+	) {
+		return expectedMigrations, nil
 	}
 
+	pg := Postgres{}
+	gotMigrations, err := pg.GetAppliedMigrations()
+	if err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
+
+	if diff := pretty.Compare(expectedMigrations, gotMigrations); diff != "" {
+		t.Errorf("Did not pass right rows for print:\n%s", diff)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
 }

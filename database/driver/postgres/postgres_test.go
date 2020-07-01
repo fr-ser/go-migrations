@@ -21,8 +21,6 @@ func resetMockVariables() {
 	mockableApplyMigration = database.ApplyMigration
 	mockableFilterMigrationsByText = database.FilterMigrationsByText
 	mockableFilterMigrationsByCount = database.FilterMigrationsByCount
-	mockableGetMigrationStatus = database.GetMigrationStatus
-	mockablePrintStatusTable = database.PrintStatusTable
 }
 
 func TestMain(m *testing.M) {

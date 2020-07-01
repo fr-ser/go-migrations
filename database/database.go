@@ -16,8 +16,10 @@ type Database interface {
 	// ApplyAllUpMigrations applies all up migrations
 	ApplyAllUpMigrations() error
 
-	// PrintMigrationStatus prints a human readable table about applied and unapplied migrations
-	PrintMigrationStatus() error
+	// GetFileMigrations returns the available migrations found locally (sorted by ID)
+	GetFileMigrations() ([]FileMigration, error)
+	// GetAppliedMigrations gets all applied migrations from the changelog (sorted by ID)
+	GetAppliedMigrations() ([]AppliedMigration, error)
 
 	// ApplySpecificMigration applies one migration based on a string search of the filename
 	ApplySpecificMigration(filter string, direction direction.MigrateDirection) error
