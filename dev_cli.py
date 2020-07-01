@@ -58,10 +58,15 @@ def _wait_for_database():
 def install_go_tools():
     os.system(r"""cat tools.go | grep _ | awk -F'"' '{print $2}' | xargs -tI % go install %""")
 
+def build_executable():
+    os.system("go build")
+
 
 def get_arguments():
     parser = argparse.ArgumentParser(description='Helper CLI for the development environment.')
-    parser.add_argument("command", help="commands to execute", choices=["test", "install_tools"])
+    parser.add_argument("command", help="commands to execute",
+    choices=["test", "install_tools", "build"],
+    )
     parser.add_argument("--unit-only", "-u", action="store_true",
                         help="Only run unit tests - skip long running integration test (setup)")
     return parser.parse_known_args()
@@ -76,5 +81,7 @@ if __name__ == "__main__":
             run_all_tests(additional_args)
     elif args.command == "install_tools":
         install_go_tools()
+    elif args.command == "build":
+        build_executable()
     else:
         print(f"Unsupported command {args.command}")
