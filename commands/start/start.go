@@ -71,7 +71,7 @@ var StartCommand = &cli.Command{
 		if err := db.WaitForStart(1*time.Second, 10); err != nil {
 			return err
 		}
-		log.Info("Connected to database")
+		log.Debug("Connected to database")
 
 		if _, err := db.EnsureMigrationsChangelog(); err != nil {
 			return err
@@ -85,7 +85,7 @@ var StartCommand = &cli.Command{
 		if err := db.ApplyAllUpMigrations(); err != nil {
 			return err
 		}
-		log.Info("Applied all migrations")
+		log.Debug("Applied all migrations")
 
 		return err
 	},

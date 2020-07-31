@@ -61,4 +61,4 @@ subcommand:
 
 ## TODOs
 
-- Apply "Prepare" Scripts. Is this used?
+- Progress report for apply all
