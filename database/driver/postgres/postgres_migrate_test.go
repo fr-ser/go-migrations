@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/jedib0t/go-pretty/v6/progress"
 	"github.com/kylelemons/godebug/pretty"
 
 	"go-migrations/database"
@@ -45,7 +46,7 @@ func TestApplyAllUpMigrations(t *testing.T) {
 	}
 
 	pg := Postgres{}
-	err = pg.ApplyAllUpMigrations()
+	err = pg.ApplyAllUpMigrations(progress.NewWriter())
 	if err != nil {
 		t.Errorf("Expected no error, but got: %s", err)
 	}
@@ -56,6 +57,14 @@ func TestApplyAllUpMigrations(t *testing.T) {
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+
+	if tracker.Total != 2 {
+		t.Errorf("The progress tracker should have a length of 2")
+	}
+
+	if !tracker.IsDone() {
+		t.Errorf("The progress tracker should be done")
 	}
 }
 

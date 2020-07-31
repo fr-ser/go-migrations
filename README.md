@@ -58,7 +58,3 @@ subcommand:
 ./go_migrations start --help
 ...
 ```
-
-## TODOs
-
-- Progress report for apply all

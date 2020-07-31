@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/jedib0t/go-pretty/v6/progress"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
@@ -82,12 +83,23 @@ var StartCommand = &cli.Command{
 		}
 		log.Info("Applied bootstrap migration")
 
-		if err := db.ApplyAllUpMigrations(); err != nil {
+		pw := progress.NewWriter()
+		pw.SetAutoStop(true)
+		pw.SetTrackerPosition(progress.PositionRight)
+		pw.SetUpdateFrequency(time.Millisecond * 250)
+
+		go pw.Render()
+
+		if err := db.ApplyAllUpMigrations(pw); err != nil {
 			return err
 		}
 		log.Debug("Applied all migrations")
 
-		return err
+		if pw.IsRenderInProgress() {
+			time.Sleep(time.Millisecond * 251)
+		}
+
+		return nil
 	},
 }
 

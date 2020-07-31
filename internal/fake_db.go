@@ -4,11 +4,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jedib0t/go-pretty/v6/progress"
+	"github.com/kylelemons/godebug/pretty"
+
 	"go-migrations/database"
 	"go-migrations/database/config"
 	"go-migrations/internal/direction"
-
-	"github.com/kylelemons/godebug/pretty"
 )
 
 type applyMigrationsWithCountArgs struct {
@@ -105,7 +106,7 @@ func (db *FakeDbWithSpy) AssertGetAppliedMigrationsCalled(t *testing.T, expectCa
 }
 
 // ApplyAllUpMigrations saves the call
-func (db *FakeDbWithSpy) ApplyAllUpMigrations() error {
+func (db *FakeDbWithSpy) ApplyAllUpMigrations(pw progress.Writer) error {
 	db.applyAllUpMigrationsCalls = append(db.applyAllUpMigrationsCalls, true)
 	return nil
 }

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/jedib0t/go-pretty/v6/progress"
 	"github.com/lithammer/dedent"
 
 	"go-migrations/database/driver"
@@ -104,7 +105,7 @@ func TestApplyAllUpMigrations(t *testing.T) {
 		t.Fatalf("Error during changelog creation: %v", err)
 	}
 
-	if err := db.ApplyAllUpMigrations(); err != nil {
+	if err := db.ApplyAllUpMigrations(progress.NewWriter()); err != nil {
 		t.Fatalf("Error during up migration: %v", err)
 	}
 

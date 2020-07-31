@@ -7,8 +7,8 @@ import (
 
 	// import to register driver
 	_ "github.com/jackc/pgx/stdlib"
+	"github.com/jedib0t/go-pretty/v6/progress"
 	"github.com/lithammer/dedent"
-	log "github.com/sirupsen/logrus"
 
 	"go-migrations/database"
 	"go-migrations/database/config"
@@ -28,6 +28,8 @@ var (
 )
 
 var changelogTable = "public.migrations_changelog"
+
+var tracker progress.Tracker
 
 // Postgres is a model to apply migrations against a PostgreSQL database
 type Postgres struct {
@@ -86,7 +88,7 @@ func (pg *Postgres) GetAppliedMigrations() (migrations []database.AppliedMigrati
 }
 
 // ApplyAllUpMigrations applies all up migrations
-func (pg *Postgres) ApplyAllUpMigrations() (err error) {
+func (pg *Postgres) ApplyAllUpMigrations(pw progress.Writer) (err error) {
 	if pg.fileMigrations == nil {
 		_, err = pg.GetFileMigrations()
 		if err != nil {
@@ -101,13 +103,22 @@ func (pg *Postgres) ApplyAllUpMigrations() (err error) {
 	}
 	defer db.Close()
 
+	tracker = progress.Tracker{
+		Message: "Applying migrations",
+		Total:   int64(len(pg.fileMigrations)),
+	}
+
+	pw.AppendTracker(&tracker)
+
 	for _, migration := range pg.fileMigrations {
 		err = mockableApplyMigration(db, migration, changelogTable, direction.Up)
 		if err != nil {
 			return err
 		}
+		tracker.Increment(1)
 	}
-	log.Infof("Applied %d migrations", len(pg.fileMigrations))
+	tracker.MarkAsDone()
+
 	return nil
 }
 

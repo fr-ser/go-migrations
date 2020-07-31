@@ -3,6 +3,8 @@ package database
 import (
 	"time"
 
+	"github.com/jedib0t/go-pretty/v6/progress"
+
 	"go-migrations/database/config"
 	"go-migrations/internal/direction"
 )
@@ -14,7 +16,7 @@ type Database interface {
 	// Bootstrap applies the bootstrap migration
 	Bootstrap() error
 	// ApplyAllUpMigrations applies all up migrations
-	ApplyAllUpMigrations() error
+	ApplyAllUpMigrations(pw progress.Writer) error
 
 	// GetFileMigrations returns the available migrations found locally (sorted by ID)
 	GetFileMigrations() ([]FileMigration, error)
