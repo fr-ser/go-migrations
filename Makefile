@@ -19,3 +19,6 @@ test: teardown
 
 teardown:
 	docker-compose -f docker-compose.test.yaml down --remove-orphans --timeout 1 --volumes
+
+start-example:
+	go run . start --dc-file ./example/docker-compose.yaml -p ./example/migrations -r

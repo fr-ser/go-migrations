@@ -12,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
+	"go-migrations/commands/bootstrap"
 	"go-migrations/commands/migrate"
 	"go-migrations/commands/start"
 	"go-migrations/utils"
@@ -30,6 +31,7 @@ func main() {
 	app.ExitErrHandler = errExitHandler
 	app.Commands = []*cli.Command{
 		start.StartCommand,
+		bootstrap.BootstrapCommand,
 		migrate.MigrateCommands,
 	}
 
