@@ -23,3 +23,10 @@ teardown:
 
 start-example:
 	go run . start --dc-file ./example/docker-compose.yaml -p ./example/migrations -r
+
+releases:
+	env GOOS=linux GOARCH=amd64 go build
+	mv go-migrations db-migrations-linux-amd64
+
+	env GOOS=darwin GOARCH=amd64 go build
+	mv go-migrations db-migrations-darwin-amd64
