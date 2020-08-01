@@ -25,24 +25,42 @@ func WaitForStart(db *sql.DB, pollInterval time.Duration, retries int) error {
 	return fmt.Errorf("Timed out connecting to database: %v", err)
 }
 
-// ApplyBootstrapMigration applies the bootstrap.sql, which it finds by itself based
-// on the migrations path
-func ApplyBootstrapMigration(db *sql.DB, migrationsPath string) error {
+// GetBootstrapSQL returns the SQL string of the bootstrap file
+// or returns an empty string if the file does not exist
+func GetBootstrapSQL(migrationsPath string) (sql string, err error) {
 	bootstrapFile, err := os.Open(filepath.Join(migrationsPath, "bootstrap.sql"))
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil
+			return "", nil
 		}
 
-		return fmt.Errorf("Couldn't open bootstrap file: %v", err)
+		return "", fmt.Errorf("Couldn't open bootstrap file: %v", err)
 	}
 	defer bootstrapFile.Close()
 	fileContent, err := ioutil.ReadAll(bootstrapFile)
 	if err != nil {
-		return fmt.Errorf("Couldn't read config file: %v", err)
+		return "", fmt.Errorf("Couldn't read config file: %v", err)
+	}
+
+	return string(fileContent), nil
+}
+
+// ApplyBootstrapMigration applies the bootstrap.sql, which it finds by itself based
+// on the migrations path
+func ApplyBootstrapMigration(db *sql.DB, migrationsPath string) (err error) {
+	fileContent, err := GetBootstrapSQL(migrationsPath)
+	if err != nil {
+		return err
+	}
+	if fileContent == "" {
+		return nil
 	}
 	_, err = db.Exec(string(fileContent))
-	return err
+	if err != nil {
+		return fmt.Errorf("Could not apply bootstrap.sql: %v", err)
+	}
+
+	return nil
 }
 
 // EnsureConsistentMigrations checks if all applied migrations (by ID) exist as local files

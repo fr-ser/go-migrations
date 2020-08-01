@@ -14,10 +14,9 @@ import (
 	"go-migrations/utils"
 )
 
-// variables to allow mocking for tests
 var (
-	runWithOutput  = utils.RunWithOutput
-	mockableLoadDB = driver.LoadDB
+	mockableRunWithOutput = utils.RunWithOutput
+	mockableLoadDB        = driver.LoadDB
 )
 
 var flags = []cli.Flag{
@@ -106,7 +105,7 @@ var StartCommand = &cli.Command{
 func startDb(dcFile, service string) error {
 	cmd := exec.Command("docker-compose", "--file", dcFile, "up", "--detach", service)
 
-	_, stderr, err := runWithOutput(cmd)
+	_, stderr, err := mockableRunWithOutput(cmd)
 	if err != nil {
 		log.Error(stderr)
 		return err
@@ -120,7 +119,7 @@ func startDb(dcFile, service string) error {
 func stopDb(dcFile, service string) error {
 	cmd := exec.Command("docker-compose", "--file", dcFile, "rm", "--force", "--stop", service)
 
-	_, stderr, err := runWithOutput(cmd)
+	_, stderr, err := mockableRunWithOutput(cmd)
 	if err != nil {
 		log.Error(stderr)
 		return err

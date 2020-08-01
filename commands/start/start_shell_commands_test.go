@@ -37,7 +37,7 @@ func (f *fakeRunWithSpy) runWithOutputFail(cmd *exec.Cmd) (stdout, stderr string
 func TestStartWithDefaults(t *testing.T) {
 	args := []string{"sth.exe", "start"}
 	var fakeRun fakeRunWithSpy
-	runWithOutput = fakeRun.runWithOutputSuccess
+	mockableRunWithOutput = fakeRun.runWithOutputSuccess
 
 	hook := test.NewGlobal()
 	defer hook.Reset()
@@ -67,7 +67,7 @@ func TestStartAlternateComposeFile(t *testing.T) {
 		"--service", "db",
 	}
 	var fakeRun fakeRunWithSpy
-	runWithOutput = fakeRun.runWithOutputSuccess
+	mockableRunWithOutput = fakeRun.runWithOutputSuccess
 
 	err := app.Run(args)
 
@@ -92,7 +92,7 @@ func TestStartAlternateComposeFile(t *testing.T) {
 func TestStartWithRestart(t *testing.T) {
 	args := []string{"sth.exe", "start", "--restart", "-s", "db"}
 	var fakeRun fakeRunWithSpy
-	runWithOutput = fakeRun.runWithOutputSuccess
+	mockableRunWithOutput = fakeRun.runWithOutputSuccess
 
 	if err := app.Run(args); err != nil {
 		t.Errorf("Error running command - %s", err)
@@ -121,7 +121,7 @@ func TestStartWithRestart(t *testing.T) {
 func TestStartFailure(t *testing.T) {
 	args := []string{"sth.exe", "start"}
 	var fakeRun fakeRunWithSpy
-	runWithOutput = fakeRun.runWithOutputFail
+	mockableRunWithOutput = fakeRun.runWithOutputFail
 
 	hook := test.NewGlobal()
 	defer hook.Reset()

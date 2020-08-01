@@ -10,7 +10,7 @@ drivers and functionality as the above mentioned.
 
 An example of a migration structure can be found in the example folder `./example`.
 
-Folder names starting with an underscore (`/_`) generally have a special meaning.
+Folder names starting with an underscore generally have a special meaning.
 Currently the following special folders exist:
 
 - \_environments: This folder contains configuration files for different databases / environments

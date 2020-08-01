@@ -1,6 +1,7 @@
 package database
 
 import (
+	"os"
 	"time"
 
 	"github.com/jedib0t/go-pretty/v6/progress"
@@ -17,6 +18,9 @@ type Database interface {
 	Bootstrap() error
 	// ApplyAllUpMigrations applies all up migrations
 	ApplyAllUpMigrations(pw progress.Writer) error
+
+	// GenerateSeedSQL writes all migration into a single file as an SQL seed
+	GenerateSeedSQL(f *os.File) error
 
 	// GetFileMigrations returns the available migrations found locally (sorted by ID)
 	GetFileMigrations() ([]FileMigration, error)

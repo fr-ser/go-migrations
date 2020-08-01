@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
 	// import to register driver
@@ -25,9 +26,17 @@ var (
 	mockableApplyMigration             = database.ApplyMigration
 	mockableFilterMigrationsByText     = database.FilterMigrationsByText
 	mockableFilterMigrationsByCount    = database.FilterMigrationsByCount
+	mockableGetBootstrapSQL            = database.GetBootstrapSQL
 )
 
 var changelogTable = "public.migrations_changelog"
+var createChangelogSQL = dedent.Dedent(`
+	CREATE TABLE public.migrations_changelog (
+		  id VARCHAR(14) NOT NULL PRIMARY KEY
+		, name TEXT NOT NULL
+		, applied_at timestamptz NOT NULL
+	);
+`)
 
 var tracker progress.Tracker
 
@@ -119,6 +128,53 @@ func (pg *Postgres) ApplyAllUpMigrations(pw progress.Writer) (err error) {
 	}
 	tracker.MarkAsDone()
 
+	return nil
+}
+
+// GenerateSeedSQL writes all migration into a single file as an SQL seed
+func (pg *Postgres) GenerateSeedSQL(f *os.File) (err error) {
+	if pg.fileMigrations == nil {
+		_, err = pg.GetFileMigrations()
+		if err != nil {
+			return err
+		}
+
+	}
+
+	_, err = f.WriteString(createChangelogSQL)
+	if err != nil {
+		return fmt.Errorf("Could not write to target file")
+	}
+
+	bootstrapSQL, err := mockableGetBootstrapSQL(pg.config.MigrationsPath)
+	if err != nil {
+		return err
+	}
+	if bootstrapSQL != "" {
+		_, err = f.WriteString(fmt.Sprintf("%s\n", bootstrapSQL))
+		if err != nil {
+			return fmt.Errorf("Could not write to target file")
+		}
+	}
+
+	for _, migration := range pg.fileMigrations {
+		_, err = f.WriteString(
+			fmt.Sprintf("%s;\n", migration.UpSQL),
+		)
+		if err != nil {
+			return fmt.Errorf("Could not write to target file")
+		}
+
+		insertSQL := fmt.Sprintf(
+			database.ChangelogInsertSQL, changelogTable, migration.ID, migration.Description,
+		)
+		_, err = f.WriteString(
+			fmt.Sprintf("%s;\n", insertSQL),
+		)
+		if err != nil {
+			return fmt.Errorf("Could not write to target file")
+		}
+	}
 	return nil
 }
 
@@ -227,13 +283,7 @@ func (pg *Postgres) EnsureMigrationsChangelog() (created bool, err error) {
 	if exists {
 		return false, nil
 	}
-	_, err = db.Exec(dedent.Dedent(`
-		CREATE TABLE public.migrations_changelog (
-			  id VARCHAR(14) NOT NULL PRIMARY KEY
-			, name TEXT NOT NULL
-			, applied_at timestamptz NOT NULL
-		);
-	`))
+	_, err = db.Exec(createChangelogSQL)
 	if err != nil {
 		return false, fmt.Errorf("Error creating migrations changelog: %v", err)
 	}

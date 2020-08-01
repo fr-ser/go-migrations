@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -33,6 +34,7 @@ type FakeDbWithSpy struct {
 	applyAllUpMigrationsCalls       []bool
 	getFileMigrationsCalls          []bool
 	getAppliedMigrationsCalls       []bool
+	generateSeedSQLCalls            []bool
 	applyMigrationsWithCountCalls   []applyMigrationsWithCountArgs
 	applySpecificMigrationCalls     []applySpecificMigrationArgs
 }
@@ -153,6 +155,23 @@ func (db *FakeDbWithSpy) AssertEnsureMigrationsChangelogCalled(t *testing.T, exp
 		t.Errorf("EnsureMigrationsChangelog was called but shouldn't have been")
 	} else if !wasCalled && expectCalled {
 		t.Errorf("EnsureMigrationsChangelog wasn't called but should have been")
+	}
+}
+
+// GenerateSeedSQL saves the call
+func (db *FakeDbWithSpy) GenerateSeedSQL(f *os.File) error {
+	db.generateSeedSQLCalls = append(db.generateSeedSQLCalls, true)
+	return nil
+}
+
+// AssertGenerateSeedSQLCalled checks for calls
+func (db *FakeDbWithSpy) AssertGenerateSeedSQLCalled(t *testing.T, expectCalled bool) {
+	wasCalled := len(db.generateSeedSQLCalls) > 0
+
+	if wasCalled && !expectCalled {
+		t.Errorf("GenerateSeedSQL was called but shouldn't have been")
+	} else if !wasCalled && expectCalled {
+		t.Errorf("GenerateSeedSQL wasn't called but should have been")
 	}
 }
 

@@ -20,6 +20,8 @@ var (
 	mockableApplyVerify         = ApplyVerify
 )
 
+var ChangelogInsertSQL = "INSERT INTO %s (id, name, applied_at) VALUES ('%s', '%s', now())"
+
 // FilterMigrationsByText filters the migrations by filename.
 // If more then one migration remains an error is thrown
 func FilterMigrationsByText(
@@ -278,7 +280,7 @@ func ApplyDownSQL(db *sql.DB, migration FileMigration) error {
 // InsertToChangelog is an internal helper to insert the migration into the changelog
 func InsertToChangelog(db *sql.DB, migration FileMigration, changelogTable string) error {
 	_, err := db.Exec(fmt.Sprintf(
-		`INSERT INTO %s (id, name, applied_at) VALUES ('%s', '%s', now())`,
+		ChangelogInsertSQL,
 		changelogTable,
 		migration.ID,
 		migration.Description,

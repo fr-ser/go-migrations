@@ -22,7 +22,7 @@ func fakeRunWithOutput(cmd *exec.Cmd) (stdout, stderr string, err error) {
 }
 
 func TestStartDbDefaults(t *testing.T) {
-	runWithOutput = fakeRunWithOutput
+	mockableRunWithOutput = fakeRunWithOutput
 	mockableLoadDB = fakeLoadWithSpy
 
 	args := []string{"sth.exe", "start"}
@@ -43,7 +43,7 @@ func TestStartDbDefaults(t *testing.T) {
 }
 
 func TestStartDbWithFlags(t *testing.T) {
-	runWithOutput = fakeRunWithOutput
+	mockableRunWithOutput = fakeRunWithOutput
 	mockableLoadDB = fakeLoadWithSpy
 
 	args := []string{"sth.exe", "start", "-p", "/my/path", "-e", "my-env"}

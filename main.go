@@ -13,6 +13,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"go-migrations/commands/bootstrap"
+	"go-migrations/commands/createseed"
 	"go-migrations/commands/migrate"
 	"go-migrations/commands/start"
 	"go-migrations/utils"
@@ -33,6 +34,7 @@ func main() {
 		start.StartCommand,
 		bootstrap.BootstrapCommand,
 		migrate.MigrateCommands,
+		createseed.CreateSeedCommand,
 	}
 
 	err := app.Run(os.Args)

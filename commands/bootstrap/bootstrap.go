@@ -11,7 +11,6 @@ import (
 	"go-migrations/database/driver"
 )
 
-// variables to allow mocking for tests
 var (
 	mockableLoadDB = driver.LoadDB
 )

@@ -105,11 +105,12 @@ func TestApplyBootstrapFailure(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	expectedError := errors.New("my-err")
-	mock.ExpectExec("SELECT 1").WillReturnError(expectedError)
+	expectedSQLErr := errors.New("my-err")
+	mock.ExpectExec("SELECT 1").WillReturnError(expectedSQLErr)
 
 	err := ApplyBootstrapMigration(db, dir)
-	if err != expectedError {
+	expectedError := fmt.Sprintf("Could not apply bootstrap.sql: %v", expectedSQLErr)
+	if err.Error() != expectedError {
 		t.Fatalf("Received different error during bootstrap: %v", err)
 	}
 
