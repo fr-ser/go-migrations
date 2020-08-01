@@ -1,3 +1,5 @@
+.PHONY: releases
+
 install:
 	cat tools.go | grep _ | awk -F'"' '{print $$2}' | xargs -tI % go install %
 
@@ -33,8 +35,9 @@ start-example:
 	go run . start --dc-file ./example/docker-compose.yaml -p ./example/migrations -r
 
 releases:
+	mkdir -p releases
 	env GOOS=linux GOARCH=amd64 go build
-	mv go-migrations db-migrations-linux-amd64
+	mv go-migrations releases/db-migrations-linux-amd64
 
 	env GOOS=darwin GOARCH=amd64 go build
-	mv go-migrations db-migrations-darwin-amd64
+	mv go-migrations releases/db-migrations-darwin-amd64

@@ -1,8 +1,26 @@
 version: 2.1
+
+workflows:
+  version: 2
+  ci:
+    jobs:
+      - test:
+          filters:
+            tags:
+              only: /^v\d+.\d+.\d+(-rc\.\d+)?$/
+      - deploy:
+          requires:
+            - test
+          filters:
+            tags:
+              only: /^v\d+.\d+.\d+(-rc\.\d+)?$/
+            branches:
+              ignore: /.*/
+
 jobs:
-  build:
+  test:
     docker:
-      - image: cimg/go:1.14.2
+      - image: golang:1.14
       - image: circleci/postgres:12
         name: database
         environment:
@@ -14,3 +32,17 @@ jobs:
       - checkout
       - run: make install
       - run: DB_HOST=database DB_PORT=5432 make test-no-bootstrap
+
+  deploy:
+    docker:
+      - image: golang:1.14
+    working_directory: ~/go-migrations
+    steps:
+      - checkout
+      - run: make releases
+      - run:
+          name: Upload to github as release
+          command: |
+            go get github.com/tcnksm/ghr
+            sed -i "s/\${VERSION}/${CIRCLE_TAG}/g" release_text.md
+            ghr -c ${CIRCLE_SHA1} -t ${GITHUB_TOKEN} -b "$(cat release_text.md)" ${CIRCLE_TAG} ./releases
