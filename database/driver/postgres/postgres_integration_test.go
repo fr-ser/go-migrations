@@ -4,6 +4,7 @@ package postgres_test
 
 import (
 	"database/sql"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,9 +15,15 @@ import (
 
 	"go-migrations/database/driver"
 	"go-migrations/internal/direction"
+	"go-migrations/utils"
 )
 
-var dbConn, _ = sql.Open("pgx", "postgresql://admin:admin_pass@localhost:35432/my_db")
+var host = utils.GetEnvDefault("DB_HOST", "localhost")
+var port = utils.GetEnvDefault("DB_PORT", "35432")
+var dbConn, _ = sql.Open(
+	"pgx",
+	fmt.Sprintf("postgresql://admin:admin_pass@%s:%s/my_db", host, port),
+)
 
 func TestApplyBootstrap(t *testing.T) {
 	cleanup, migrationPath := setupFolder(t)
@@ -220,15 +227,15 @@ func setupFolder(t *testing.T) (func(), string) {
 
 	defaultConfig := dedent.Dedent(`
 		db_type: postgres
-		host: localhost
-		port: 35432
+		host: %s
+		port: %s
 		db_name: my_db
 		user: admin
 		password: admin_pass
 	`)
 	ioutil.WriteFile(
 		filepath.Join(dir, "_environments", "development.yaml"),
-		[]byte(defaultConfig),
+		[]byte(fmt.Sprintf(defaultConfig, host, port)),
 		0777,
 	)
 
