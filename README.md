@@ -58,3 +58,34 @@ subcommand:
 ./go_migrations start --help
 ...
 ```
+
+## Installation
+
+```sh
+make build
+sudo cp db-migrations /usr/local/bin/db-migrations
+chmod +x /usr/local/bin/db-migrations
+```
+
+### Shell Completion
+
+#### Bash
+
+```sh
+sudo cp ./shell_complete/bash_autocomplete.txt /etc/bash_completion.d/db-migrations
+```
+
+#### Zsh
+
+```sh
+mkdir -p ~/.config/db-migrations/
+cp shell_complete/zsh_autocomplete.txt ~/.config/db-migrations
+
+
+echo "" >> ~/.zshrc
+echo "# auto completion for db-migrations" >> ~/.zshrc
+echo "PROG=db-migrations" >> ~/.zshrc
+echo "_CLI_ZSH_AUTOCOMPLETE_HACK=1" >> ~/.zshrc
+echo "source  ~/.config/db-migrations/zsh_autocomplete.txt" >> ~/.zshrc
+echo "" >> ~/.zshrc
+```

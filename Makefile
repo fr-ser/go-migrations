@@ -3,6 +3,7 @@ install:
 
 build:
 	go build
+	mv go-migrations db-migrations
 
 unit-test:
 	@echo Run as 'make unit-test args="-s -v"' to pass flags
